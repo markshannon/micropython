@@ -2,6 +2,7 @@
 #include "microbitobj.h"
 #include "microbitdisplay.h"
 #include "microbitmusic.h"
+#include "microbitbutton.h"
 
 extern "C" {
     void mp_run(void);
@@ -48,8 +49,8 @@ static void ticker(void) {
     accelerometer_up_to_date = false;
 
     // Update buttons
-    uBit.buttonA.systemTick();
-    uBit.buttonB.systemTick();
+    microbit_button_a_obj.tick();
+    microbit_button_b_obj.tick();
 
     // Update the display.
     microbit_display_tick();
