@@ -370,8 +370,11 @@ Q(pi)
 Q(sqrt)
 Q(pow)
 Q(exp)
+#if MICROPY_PY_MATH_SPECIAL_FUNCTIONS
 Q(expm1)
+#endif
 Q(log)
+#if MICROPY_PY_MATH_SPECIAL_FUNCTIONS
 Q(log2)
 Q(log10)
 Q(cosh)
@@ -380,6 +383,7 @@ Q(tanh)
 Q(acosh)
 Q(asinh)
 Q(atanh)
+#endif
 Q(cos)
 Q(sin)
 Q(tan)
@@ -613,4 +617,33 @@ Q(mem32)
 #if MICROPY_PY_USSL
 Q(ussl)
 Q(wrap_socket)
+#endif
+
+#if MICROPY_PY_LWIP
+// for lwip module
+Q(lwip)
+Q(reset)
+Q(callback)
+Q(socket)
+Q(AF_INET)
+Q(AF_INET6)
+Q(SOCK_STREAM)
+Q(SOCK_DGRAM)
+Q(SOCK_RAW)
+// for lwip.socket
+Q(close)
+Q(bind)
+Q(listen)
+Q(accept)
+Q(connect)
+Q(send)
+Q(recv)
+Q(sendto)
+Q(recvfrom)
+Q(settimeout)
+#if MICROPY_PY_LWIP_SLIP
+// for lwip.slip
+Q(slip)
+Q(status)
+#endif
 #endif

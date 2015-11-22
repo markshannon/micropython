@@ -33,7 +33,13 @@ extern "C" {
 #include "py/obj.h"
 
 MicroBitPin *microbit_obj_get_pin(mp_obj_t o);
-MicroBitImage *microbit_obj_get_image(mp_obj_t o);
+
+
+extern volatile bool compass_up_to_date;
+extern volatile bool compass_updating;
+
+extern volatile bool accelerometer_up_to_date;
+extern volatile bool accelerometer_updating;
 
 extern volatile bool compass_up_to_date;
 extern volatile bool compass_updating;

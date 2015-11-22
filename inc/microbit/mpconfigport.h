@@ -27,6 +27,8 @@
 #define MICROPY_ENABLE_SOURCE_LINE  (1)
 #define MICROPY_ENABLE_DOC_STRING   (0)
 #define MICROPY_ERROR_REPORTING     (MICROPY_ERROR_REPORTING_NORMAL)
+#define MICROPY_STREAMS_NON_BLOCK   (1)
+#define MICROPY_CAN_OVERRIDE_BUILTINS (1)
 #define MICROPY_PY_BUILTINS_STR_UNICODE (1)
 #define MICROPY_PY_BUILTINS_BYTEARRAY (1)
 #define MICROPY_PY_BUILTINS_MEMORYVIEW (0)
@@ -43,7 +45,7 @@
 #define MICROPY_PY_ATTRTUPLE        (0)
 #define MICROPY_PY_COLLECTIONS      (1)
 #define MICROPY_PY_COLLECTIONS_ORDEREDDICT (1)
-#define MICROPY_PY_MATH             (0)
+#define MICROPY_PY_MATH             (1)
 #define MICROPY_PY_CMATH            (0)
 #define MICROPY_PY_IO               (0)
 #define MICROPY_PY_STRUCT           (1)
@@ -84,12 +86,14 @@ extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
 
 // extra builtin modules to add to the list of known ones
 extern const struct _mp_obj_module_t microbit_module;
+extern const struct _mp_obj_module_t music_module;
 extern const struct _mp_obj_module_t this_module;
 extern const struct _mp_obj_module_t antigravity_module;
 extern const struct _mp_obj_module_t love_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_microbit), (mp_obj_t)&microbit_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_music), (mp_obj_t)&music_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_this), (mp_obj_t)&this_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_antigravity), (mp_obj_t)&antigravity_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_love), (mp_obj_t)&love_module }, \
@@ -111,3 +115,8 @@ extern const struct _mp_obj_module_t love_module;
 #define MICROPY_HAL_H "mphal.h"
 #define MICROPY_HW_BOARD_NAME "micro:bit"
 #define MICROPY_HW_MCU_NAME "nRF51822"
+
+// Toolchain seems to be missing M_PI
+#ifndef M_PI
+#define M_PI (3.141592653589793)
+#endif

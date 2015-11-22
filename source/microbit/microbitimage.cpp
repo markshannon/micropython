@@ -303,7 +303,8 @@ STATIC mp_obj_t microbit_image_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_u
                 mp_int_t i = 0;
                 for (mp_int_t y = 0; y < h; y++) {
                     for (mp_int_t x = 0; x < w; ++x) {
-                        image->setPixelValue(x,y, ((const uint8_t*)bufinfo.buf)[i]);
+                        uint8_t val = min(((const uint8_t*)bufinfo.buf)[i], MAX_BRIGHTNESS);
+                        image->setPixelValue(x, y, val);
                         ++i;
                     }
                 }
@@ -477,6 +478,9 @@ STATIC const mp_map_elem_t microbit_image_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_ANGRY), (mp_obj_t)&microbit_const_image_angry_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ASLEEP), (mp_obj_t)&microbit_const_image_asleep_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_SURPRISED), (mp_obj_t)&microbit_const_image_surprised_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SILLY), (mp_obj_t)&microbit_const_image_silly_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_FABULOUS), (mp_obj_t)&microbit_const_image_fabulous_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_MEH), (mp_obj_t)&microbit_const_image_meh_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_YES), (mp_obj_t)&microbit_const_image_yes_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_NO), (mp_obj_t)&microbit_const_image_no_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_CLOCK12), (mp_obj_t)&microbit_const_image_clock12_obj },
@@ -499,6 +503,21 @@ STATIC const mp_map_elem_t microbit_image_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_ARROW_SW), (mp_obj_t)&microbit_const_image_arrow_sw_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ARROW_W), (mp_obj_t)&microbit_const_image_arrow_w_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ARROW_NW), (mp_obj_t)&microbit_const_image_arrow_nw_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_TRIANGLE), (mp_obj_t)&microbit_const_image_triangle_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_TRIANGLE_LEFT), (mp_obj_t)&microbit_const_image_triangle_left_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_CHESSBOARD), (mp_obj_t)&microbit_const_image_chessboard_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_DIAMOND), (mp_obj_t)&microbit_const_image_diamond_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_DIAMOND_SMALL), (mp_obj_t)&microbit_const_image_diamond_small_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SQUARE), (mp_obj_t)&microbit_const_image_square_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SQUARE_SMALL), (mp_obj_t)&microbit_const_image_square_small_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_RABBIT), (mp_obj_t)&microbit_const_image_rabbit },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_COW), (mp_obj_t)&microbit_const_image_cow },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_MUSIC_CROTCHET), (mp_obj_t)&microbit_const_image_music_crotchet_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_MUSIC_QUAVERS), (mp_obj_t)&microbit_const_image_music_quavers_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_PITCHFORK), (mp_obj_t)&microbit_const_image_pitchfork_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_XMAS), (mp_obj_t)&microbit_const_image_xmas_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_PACMAN), (mp_obj_t)&microbit_const_image_pacman_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_TARGET), (mp_obj_t)&microbit_const_image_target_obj },
 };
 
 STATIC MP_DEFINE_CONST_DICT(microbit_image_locals_dict, microbit_image_locals_dict_table);
@@ -516,7 +535,7 @@ STATIC const unsigned char *get_font_data_from_char(char c) {
 
 STATIC mp_int_t get_pixel_from_font_data(const unsigned char *data, int x, int y) {
     /* The following logic belongs in MicroBitFont */
-    return ((data[y]>>(4-x))&1)*MAX_BRIGHTNESS;
+    return ((data[y]>>(4-x))&1);
 }
 
 microbit_image_obj_t *microbit_image_for_char(char c) {
@@ -524,7 +543,7 @@ microbit_image_obj_t *microbit_image_for_char(char c) {
     greyscale_t *result = greyscale_new(5,5);
     for (int x = 0; x < 5; ++x) {
         for (int y = 0; y < 5; ++y) {
-            result->setPixelValue(x, y, get_pixel_from_font_data(data, x, y));
+            result->setPixelValue(x, y, get_pixel_from_font_data(data, x, y)*MAX_BRIGHTNESS);
         }
     }
     return (microbit_image_obj_t *)result;
@@ -649,11 +668,13 @@ STATIC mp_obj_t microbit_image_slice_iter_next(mp_obj_t o_in) {
     image_slice_iterator_t *iter = (image_slice_iterator_t *)o_in;
     mp_obj_t result;
     microbit_image_obj_t *img = iter->slice->img;
-    if (iter->next_start <= img->width()-iter->slice->width) {
-        result = image_crop(img, iter->next_start, 0, iter->next_start  + iter->slice->width, img->height());
-    } else {
-        result = MP_OBJ_STOP_ITERATION;
+    if (iter->slice->stride > 0 && iter->next_start >= img->width()) {
+        return MP_OBJ_STOP_ITERATION;
     }
+    if (iter->slice->stride < 0 && iter->next_start <= -iter->slice->width) {
+        return MP_OBJ_STOP_ITERATION;
+    }
+    result = image_crop(img, iter->next_start, 0, iter->slice->width, img->height());
     iter->next_start += iter->slice->stride;
     return result;
 }
@@ -699,6 +720,7 @@ typedef struct _scrolling_string_t {
     char const *str;
     mp_uint_t len;
     mp_obj_t ref;
+    bool monospace;
 } scrolling_string_t;
 
 typedef struct _scrolling_string_iterator_t {
@@ -708,19 +730,42 @@ typedef struct _scrolling_string_iterator_t {
     char const *next_char;
     char const *end;
     uint8_t offset;
+    uint8_t offset_limit;
+    bool monospace;
     char right;
 } scrolling_string_iterator_t;
 
 extern const mp_obj_type_t microbit_scrolling_string_type;
 extern const mp_obj_type_t microbit_scrolling_string_iterator_type;
 
-mp_obj_t scrolling_string_image_iterable(const char* str, mp_uint_t len, mp_obj_t ref) {
+mp_obj_t scrolling_string_image_iterable(const char* str, mp_uint_t len, mp_obj_t ref, bool monospace) {
     scrolling_string_t *result = m_new_obj(scrolling_string_t);
     result->base.type = &microbit_scrolling_string_type;
     result->str = str;
     result->len = len;
     result->ref = ref;
+    result->monospace = monospace;
     return result;
+}
+
+STATIC int font_column_non_blank(const unsigned char *font_data, unsigned int col) {
+    for (int y = 0; y < 5; ++y) {
+        if (get_pixel_from_font_data(font_data, col, y)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Not strictly the rightmost non-blank column, but the rightmost in columns 2,3 or 4. */
+STATIC unsigned int rightmost_non_blank_column(const unsigned char *font_data) {
+    if (font_column_non_blank(font_data, 4)) {
+        return 4;
+    }
+    if (font_column_non_blank(font_data, 3)) {
+        return 3;
+    }
+    return 2;
 }
 
 STATIC mp_obj_t get_microbit_scrolling_string_iter(mp_obj_t o_in) {
@@ -731,11 +776,19 @@ STATIC mp_obj_t get_microbit_scrolling_string_iter(mp_obj_t o_in) {
     result->offset = 0;
     result->next_char = str->str;
     result->ref = str->ref;
+    result->monospace = str->monospace;
     result->end = result->next_char + str->len;
-    if (str->len)
+    if (str->len) {
         result->right = *result->next_char;
-    else
+        if (result->monospace) {
+            result->offset_limit = 5;
+        } else {
+            result->offset_limit = rightmost_non_blank_column(get_font_data_from_char(result->right)) + 1;
+        }
+    } else {
         result->right = ' ';
+        result->offset_limit = 5;
+    }
     return result;
 }
 
@@ -746,19 +799,30 @@ STATIC mp_obj_t microbit_scrolling_string_iter_next(mp_obj_t o_in) {
     }
     greyscale_t *result = iter->img->shiftLeft(1);
     iter->img = (microbit_image_obj_t*)result;
-    const unsigned char *font_data = get_font_data_from_char(iter->right);
-    if (iter->offset < 5) {
+    const unsigned char *font_data;
+    if (iter->offset < iter->offset_limit) {
+        font_data = get_font_data_from_char(iter->right);
         for (int y = 0; y < 5; ++y) {
-            int pix = get_pixel_from_font_data(font_data, iter->offset, y);
+            int pix = get_pixel_from_font_data(font_data, iter->offset, y)*MAX_BRIGHTNESS;
             result->setPixelValue(4, y, pix);
         }
-    } else if (iter->offset == 6) {
+    } else if (iter->offset == iter->offset_limit) {
         ++iter->next_char;
-        if (iter->next_char == iter->end)
+        if (iter->next_char == iter->end) {
             iter->right = ' ';
-        else
+            iter->offset_limit = 5;
+            iter->offset = 0;
+        } else {
             iter->right = *iter->next_char;
-        iter->offset = -1;
+            font_data = get_font_data_from_char(iter->right);
+            if (iter->monospace) {
+                iter->offset = -1;
+                iter->offset_limit = 5;
+            } else {
+                iter->offset = -font_column_non_blank(font_data, 0);
+                iter->offset_limit = rightmost_non_blank_column(font_data)+1;
+            }
+        }
     }
     ++iter->offset;
     return result;

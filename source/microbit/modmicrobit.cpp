@@ -29,7 +29,7 @@
 extern "C" {
 
 #include "py/obj.h"
-#include "mphal.h"
+#include "py/mphal.h"
 #include "modmicrobit.h"
 
 STATIC mp_obj_t microbit_reset_(void) {
@@ -40,7 +40,9 @@ MP_DEFINE_CONST_FUN_OBJ_0(microbit_reset_obj, microbit_reset_);
 
 STATIC mp_obj_t microbit_sleep(mp_obj_t ms_in) {
     mp_int_t ms = mp_obj_get_int(ms_in);
-    mp_hal_delay_ms(ms);
+    if (ms > 0) {
+        mp_hal_delay_ms(ms);
+    }
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_sleep_obj, microbit_sleep);
@@ -77,7 +79,6 @@ STATIC const mp_map_elem_t microbit_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_compass), (mp_obj_t)&microbit_compass_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_i2c), (mp_obj_t)&microbit_i2c_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_uart), (mp_obj_t)&microbit_uart_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_music), (mp_obj_t)&microbit_music_obj },
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_reset), (mp_obj_t)&microbit_reset_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_sleep), (mp_obj_t)&microbit_sleep_obj },
