@@ -560,4 +560,78 @@ IMAGE_T microbit_const_image_snake_obj = SMALL_IMAGE(
     0,0,0,0,0
 );
 
+IMAGE_T microbit_const_image_sine_wave_obj = SMALL_IMAGE(
+    0,1,0,0,0,
+    1,0,1,0,0,
+    1,0,1,0,1,
+    0,0,1,0,1,
+    0,0,0,1,0
+);
+
+IMAGE_T microbit_const_image_saw_wave_obj = SMALL_IMAGE(
+    1,0,0,0,0,
+    1,1,0,0,0,
+    1,0,1,0,0,
+    1,0,0,1,0,
+    1,0,0,0,1
+);
+
+IMAGE_T microbit_const_image_triangle_wave_obj = SMALL_IMAGE(
+    0,0,0,0,0,
+    0,0,1,0,0,
+    0,1,0,1,0,
+    1,0,0,0,1,
+    0,0,0,0,0
+);
+
+IMAGE_T microbit_const_image_square_wave_obj = SMALL_IMAGE(
+    1,1,1,1,1,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    1,0,0,0,1
+);
+
+IMAGE_T microbit_const_image_rectangular_wave_obj = SMALL_IMAGE(
+    1,1,1,1,0,
+    1,0,0,1,0,
+    1,0,0,1,0,
+    1,0,0,1,0,
+    1,0,0,1,1
+);
+
+IMAGE_T microbit_const_image_noise_wave_obj = SMALL_IMAGE(
+    0,0,1,0,0,
+    1,0,0,1,0,
+    1,0,0,1,1,
+    0,1,0,1,0,
+    0,1,0,0,0
+);
+
+IMAGE_T microbit_const_image_step_wave_obj = SMALL_IMAGE(
+    0,0,1,1,1,
+    0,0,1,0,0,
+    1,1,1,0,0,
+    1,0,0,0,0,
+    1,0,0,0,0
+);
+
+IMAGE_T microbit_const_image_power4_wave_obj = SMALL_IMAGE(
+    0,1,1,1,0,
+    0,1,0,1,0,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    1,0,0,0,1
+);
+
+IMAGE_T microbit_const_image_fade_in_obj = SMALL_IMAGE(
+    0,0,0,1,1,
+    0,0,1,0,0,
+    0,1,0,0,0,
+    0,1,0,0,0,
+    1,0,0,0,0
+);
+
+
+
 }

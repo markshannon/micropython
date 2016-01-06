@@ -117,8 +117,7 @@ void microbit_music_tick(void) {
     }
 }
 
-STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *pin) {
-    pin->setAnalogValue(128);
+MusicNote parse_note(const char *note_str, size_t note_len) {
 
     // [NOTE](#|b)(octave)(:length)
     // technically, c4 is middle c, so we'll go with that...
@@ -134,11 +133,9 @@ STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *p
     // TODO: validate the note
     uint8_t note_index = (note_str[0] & 0x1f) - 1;
 
-    // TODO: the duration and bpm should be persistent between notes
-    uint8_t ms_per_tick = (60000 / music_state.bpm) / music_state.ticks;
-
     int8_t octave = 0;
     bool sharp = false;
+    int16_t duration;
 
     uint8_t current_position = 1;
 
@@ -171,6 +168,7 @@ STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *p
     }
 
     octave += music_state.last_octave;
+    duration = music_state.last_duration;
 
     // parse the duration
     if (current_position < note_len && note_str[current_position] == ':') {
@@ -178,12 +176,12 @@ STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *p
         current_position++;
 
         if (current_position < note_len) {
-            music_state.last_duration = note_str[current_position] & 0xf;
+            duration = note_str[current_position] & 0xf;
 
             current_position++;
             if (current_position < note_len) {
-                music_state.last_duration *= 10;
-                music_state.last_duration += note_str[current_position] & 0xf;
+                duration *= 10;
+                duration += note_str[current_position] & 0xf;
             }
         } else {
             // technically, this should be a syntax error, since this means
@@ -191,32 +189,46 @@ STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *p
             // we'll let you off :D
         }
     }
-    // play the note!
 
     // make the octave relative to octave 4
     octave -= 4;
 
+    MusicNote result;
+    result.octave_shift = octave;
+    result.duration = duration;
     // 18 is 'r' or 'R'
     if (note_index < 10) {
         if (sharp) {
-            if (octave >= 0) {
-                pin->setAnalogPeriodUs(periods_sharps_us[note_index] >> octave);
-            }
-            else {
-                pin->setAnalogPeriodUs(periods_sharps_us[note_index] << -octave);
-            }
+            result.period_us = periods_sharps_us[note_index];
         } else {
-            if (octave >= 0) {
-                pin->setAnalogPeriodUs(periods_us[note_index] >> octave);
-            }
-            else {
-                pin->setAnalogPeriodUs(periods_us[note_index] << -octave);
-            }
+            result.period_us = periods_us[note_index];
         }
     } else {
-        pin->setAnalogValue(0);
+        result.period_us = 0;
     }
+    return result;
 
+}
+
+
+STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *pin) {
+    pin->setAnalogValue(128);
+
+    // TODO: the duration and bpm should be persistent between notes
+    uint8_t ms_per_tick = (60000 / music_state.bpm) / music_state.ticks;
+
+    MusicNote note = parse_note(note_str, note_len);
+    // play the note!
+
+    music_state.last_duration = note.duration;
+
+    if (note.period_us == 0) {
+        pin->setAnalogValue(0);
+    } else if (note.octave_shift >= 0) {
+        pin->setAnalogPeriodUs(note.period_us >> note.octave_shift);
+    } else {
+        pin->setAnalogPeriodUs(note.period_us << -note.octave_shift);
+    }
     // Cut off a short time from end of note so we hear articulation.
     mp_int_t gap_ms = (ms_per_tick * music_state.last_duration) - ARTICULATION_MS;
     if (gap_ms < ARTICULATION_MS) {

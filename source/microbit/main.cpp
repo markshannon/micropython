@@ -35,7 +35,9 @@ void app_main() {
     }
 }
 
-static void ticker(void) {
+extern "C" {
+
+void micropython_ticker(void) {
 
     // increment our real-time counter.
     ticks += FIBER_TICK_PERIOD_MS;
@@ -61,13 +63,11 @@ static void ticker(void) {
     microbit_music_tick();
 }
 
-extern "C" {
-
 void microbit_init(void) {
     microbit_display_init();
 
     // Hijack the DAL system ticker.
-    uBit.systemTicker.attach(ticker, MICROBIT_DISPLAY_REFRESH_PERIOD);
+    uBit.systemTicker.attach(micropython_ticker, MICROBIT_DISPLAY_REFRESH_PERIOD);
 }
 
 }

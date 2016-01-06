@@ -119,6 +119,16 @@ extern const struct _monochrome_5by5_t microbit_const_image_skull_obj;
 extern const struct _monochrome_5by5_t microbit_const_image_umbrella_obj;
 extern const struct _monochrome_5by5_t microbit_const_image_snake_obj;
 
+extern const struct _monochrome_5by5_t microbit_const_image_sine_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_square_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_saw_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_triangle_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_rectangular_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_noise_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_power4_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_step_wave_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_fade_in_obj;
+
 extern const struct _mp_obj_tuple_t microbit_music_tune_dadadadum_obj;
 extern const struct _mp_obj_tuple_t microbit_music_tune_entertainer_obj;
 extern const struct _mp_obj_tuple_t microbit_music_tune_prelude_obj;
