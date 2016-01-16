@@ -34,6 +34,7 @@ extern "C" {
 #include "py/objstr.h"
 #include "py/mphal.h"
 #include "modmicrobit.h"
+#include "lib/utils/async.h"
 
 #define DEFAULT_BPM      120
 #define DEFAULT_TICKS    4 // i.e. 4 ticks per beat
@@ -41,28 +42,35 @@ extern "C" {
 #define DEFAULT_DURATION 4 // Crotchet
 #define ARTICULATION_MS  10 // articulation between notes in milliseconds
 
+typedef enum {
+    ASYNC_MUSIC_STATE_IDLE,
+    ASYNC_MUSIC_STATE_NEXT_NOTE,
+    ASYNC_MUSIC_STATE_ARTICULATE,
+} music_action_t;
+
 typedef struct _music_state_t {
     uint16_t bpm;
     uint16_t ticks;
+    music_action_t action;
+    MicroBitPin *pin;
 
     // store these to simplify the writing process
     uint8_t last_octave;
     uint8_t last_duration;
+    async_t async;
 } music_state_t;
-
-enum {
-    ASYNC_MUSIC_STATE_IDLE,
-    ASYNC_MUSIC_STATE_NEXT_NOTE,
-    ASYNC_MUSIC_STATE_ARTICULATE,
-};
 
 static music_state_t music_state = {
     .bpm = DEFAULT_BPM,
     .ticks = DEFAULT_TICKS,
+    .action = ASYNC_MUSIC_STATE_IDLE,
+    .pin = NULL,
     .last_octave = DEFAULT_OCTAVE,
     .last_duration = DEFAULT_DURATION,
+    .async = {},
 };
 
+/*
 static volatile uint8_t async_music_state;
 static uint32_t async_music_wait_ticks;
 static bool async_music_loop;
@@ -70,51 +78,45 @@ static uint16_t async_music_notes_len;
 static uint16_t async_music_notes_index;
 static mp_obj_t *async_music_notes_items; // XXX should be stored with other root pointers
 static MicroBitPin *async_music_pin;
+*/
 
 STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *pin);
 
-void microbit_music_tick(void) {
-    if (async_music_state == ASYNC_MUSIC_STATE_IDLE) {
-        // nothing to do
-        return;
-    }
-
-    if (ticks < async_music_wait_ticks) {
-        // need to wait for timeout to expire
-        return;
-    }
-
-    if (async_music_state == ASYNC_MUSIC_STATE_ARTICULATE) {
+int32_t microbit_music_callback(async_t *async, void * state_in) {
+    music_state_t *state = (music_state_t *)state_in;
+    if (state->action == ASYNC_MUSIC_STATE_ARTICULATE) {
         // turn off output and rest
-        async_music_pin->setAnalogValue(0);
-        async_music_wait_ticks = ticks + ARTICULATION_MS;
-        async_music_state = ASYNC_MUSIC_STATE_NEXT_NOTE;
-    } else if (async_music_state == ASYNC_MUSIC_STATE_NEXT_NOTE) {
+        state->pin->setAnalogValue(0);
+        state->action = ASYNC_MUSIC_STATE_NEXT_NOTE;
+        return ARTICULATION_MS;
+    } else {
+        // state->action == ASYNC_MUSIC_STATE_NEXT_NOTE
         // play next note
-        if (async_music_notes_index >= async_music_notes_len) {
-            if (async_music_loop) {
-                async_music_notes_index = 0;
-            } else {
-                async_music_state = ASYNC_MUSIC_STATE_IDLE;
-                return;
-            }
+        mp_obj_t note = async_get_next(async);
+        if (note == NULL) {
+            async_stop(async);
+            return 1;
         }
-        mp_obj_t note = async_music_notes_items[async_music_notes_index];
         if (note == mp_const_none) {
             // a rest (is this even used anymore?)
-            async_music_pin->setAnalogValue(0);
-            async_music_wait_ticks = 60000 / music_state.bpm;
-            async_music_state = ASYNC_MUSIC_STATE_NEXT_NOTE;
+            state->pin->setAnalogValue(0);
+            state->action = ASYNC_MUSIC_STATE_NEXT_NOTE;
+            return 60000 / music_state.bpm;
         } else {
             // a note
             mp_uint_t note_len;
             const char *note_str = mp_obj_str_get_data(note, &note_len);
-            uint32_t delay_on = start_note(note_str, note_len, async_music_pin);
-            async_music_wait_ticks = ticks + delay_on;
-            async_music_notes_index += 1;
-            async_music_state = ASYNC_MUSIC_STATE_ARTICULATE;
+            uint32_t delay_on = start_note(note_str, note_len, state->pin);
+            state->action = ASYNC_MUSIC_STATE_ARTICULATE;
+            return delay_on;
         }
     }
+}
+
+int32_t microbit_music_exit(async_t *async __attribute__((unused)), void * state_in) {
+    music_state_t *state = (music_state_t *)state_in;
+    state->pin->setAnalogValue(0);
+    return 0;
 }
 
 STATIC uint32_t start_note(const char *note_str, size_t note_len, MicroBitPin *pin) {
@@ -254,8 +256,7 @@ STATIC mp_obj_t microbit_music_stop(mp_uint_t n_args, const mp_obj_t *args) {
     }
 
     pin->setAnalogValue(0);
-
-    async_music_state = ASYNC_MUSIC_STATE_IDLE;
+    async_stop(&music_state.async);
 
     return mp_const_none;
 }
@@ -277,41 +278,17 @@ STATIC mp_obj_t microbit_music_play(mp_uint_t n_args, const mp_obj_t *pos_args, 
     music_state.last_octave = DEFAULT_OCTAVE;
     music_state.last_duration = DEFAULT_DURATION;
 
-    // get either a single note or a list of notes
-    mp_uint_t len;
-    mp_obj_t *items;
-    if (MP_OBJ_IS_STR_OR_BYTES(args[0].u_obj)) {
-        len = 1;
-        items = &args[0].u_obj;
-    } else {
-        mp_obj_get_array(args[0].u_obj, &len, &items);
-    }
-
+    mp_obj_t music = args[0].u_obj;
     // get the pin to play on
     MicroBitPin *pin = microbit_obj_get_pin(args[1].u_obj);
 
     // start the tune running in the background
-    async_music_state = ASYNC_MUSIC_STATE_IDLE;
-    async_music_wait_ticks = ticks;
-    async_music_loop = args[3].u_bool;
-    async_music_notes_len = len;
-    async_music_notes_index = 0;
-    async_music_notes_items = items;
-    async_music_pin = pin;
-    async_music_state = ASYNC_MUSIC_STATE_NEXT_NOTE;
-
-    if (args[2].u_bool) {
-        // wait for tune to finish
-        while (async_music_state != ASYNC_MUSIC_STATE_IDLE) {
-            // allow CTRL-C to stop the tune
-            if (MP_STATE_VM(mp_pending_exception) != MP_OBJ_NULL) {
-                async_music_state = ASYNC_MUSIC_STATE_IDLE;
-                async_music_pin->setAnalogValue(0);
-                break;
-            }
-        }
-    }
-
+    // if (args[3].u_bool) { // loop
+    //    music = repeat_iter(music);
+    //}
+    music_state.pin = pin;
+    music_state.action = ASYNC_MUSIC_STATE_NEXT_NOTE;
+    async_start(&music_state.async, mp_getiter(args[0].u_obj), music, microbit_music_callback, microbit_music_exit, 0, args[2].u_bool);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(microbit_music_play_obj, 0, microbit_music_play);

@@ -2,6 +2,7 @@
 #include "microbitobj.h"
 #include "microbitdisplay.h"
 #include "microbitmusic.h"
+#include "lib/utils/async.h"
 
 extern "C" {
     void mp_run(void);
@@ -58,7 +59,8 @@ static void ticker(void) {
     microbit_display_tick();
 
     // Update the music
-    microbit_music_tick();
+    //microbit_music_tick();
+    async_tick();
 }
 
 extern "C" {
