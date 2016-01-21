@@ -70,6 +70,21 @@ struct LowPass {
     int32_t z1;
 };
 
+struct Chorus {
+    int16_t last_output;
+    int16_t delay;
+    int16_t bucket_mask;
+    int16_t index;
+    int16_t volume;
+    int16_t feedback;
+    int16_t *buckets;
+};
+
+struct LFO {
+    int32_t phase_delta;
+    int32_t phase;
+};
+
 struct FilterComponent {
     filter_funcptr action;
     initialise_funcptr init;
@@ -78,6 +93,8 @@ struct FilterComponent {
         Envelope envelope;
         Oscillator oscillator;
         PrngState prng;
+        Chorus chorus;
+        LFO lfo;
     };
 };
 

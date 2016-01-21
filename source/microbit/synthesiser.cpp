@@ -222,9 +222,42 @@ int32_t ar_attack(int32_t signal, FilterComponent *env) {
     return (signal*(new_level>>SCALE_SHIFT))>>SCALE_SHIFT;
 }
 
+int32_t lfo(int32_t signal __attribute__ ((unused)), int32_t control __attribute__ ((unused)), FilterComponent *lfo) {
+    return triangle_wave(lfo->lfo.phase_delta, lfo);
+}
+
+int32_t chorus(int32_t signal, int32_t control, FilterComponent *chorus) {
+    // Control is scaled ms. So we rescale to steps.
+    int32_t int_delay = control >> (SCALE_SHIFT-4);
+    int32_t part_delay = control - (int_delay<<(SCALE_SHIFT-4));
+    int32_t index = chorus->chorus.index;
+    int32_t mask = chorus->chorus.bucket_mask;
+    int32_t val0 = chorus->chorus.buckets[(index+int_delay)&mask];
+    int32_t val1 = chorus->chorus.buckets[(index+int_delay+1)&mask];
+    int32_t val = val0*((1<<(SCALE_SHIFT-4))-part_delay) + val1*part_delay;
+    // Account for 2 shift in storage.
+    val >>= (SCALE_SHIFT-2);
+    val = (val*chorus->chorus.volume)>>SCALE_SHIFT;
+    // Shift by 2 to avoid overflow
+    chorus->chorus.buckets[index] = signal + val >> 2;
+    index = (index+1)&mask;
+    return signal + val;
+}
+
 void Voice::release() {
     this->envelope.action = adsr_release;
 }
+
+
+int32_t layout_a(Voice * v) {
+    int32_t left = v->source1.action(v->phase_delta1, &v->source1);
+    left = v->filter1.action(left, &v->filter1);
+    int32_t right = v->source2.action(v->phase_delta2, &v->source2);
+    right = v->filter2.action(right, &v->filter2);
+    int32_t out = (((int32_t)v->balance.left_volume)*left+((int32_t)v->balance.right_volume)*right)>>SCALE_SHIFT;
+    return v->envelope.action(out, &v->envelope);
+}
+
 
 static uint32_t frequency_shift(uint32_t mHz, uint32_t mult) {
     /* mHz can have a *very* large range from wow-wow as low as 0.2 Hz
