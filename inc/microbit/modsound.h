@@ -50,6 +50,22 @@ typedef struct _microbit_instrument_t {
 
 } microbit_instrument_t;
 
+typedef struct _microbit_sample_t {
+    mp_obj_base_t base;
+    const int8_t *data;
+    uint32_t len;
+} microbit_sample_t;
+
+
+typedef struct _microbit_sample_iter_t {
+    mp_obj_base_t base;
+    microbit_sound_bytes_obj_t *buffer;
+    const int8_t *data;
+    uint32_t len;
+    uint32_t index;
+} microbit_sample_iter_t;
+
+
 microbit_instrument_t *simple_organ(void);
 
 #endif // __MICROPY_INCLUDED_MICROBIT_SOUND_H__

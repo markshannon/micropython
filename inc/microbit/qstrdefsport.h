@@ -401,3 +401,13 @@ Q(Sample)
 Q(get_buffer)
 
 Q(Instrument)
+
+Q(M)
+Q(Ay)
+Q(K)
+Q(R)
+Q(Oh)
+Q(B)
+Q(I)
+Q(T)
+
