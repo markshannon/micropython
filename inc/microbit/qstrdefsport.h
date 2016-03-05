@@ -401,3 +401,14 @@ Q(Sample)
 Q(get_buffer)
 
 Q(Instrument)
+
+Q(press)
+Q(release)
+
+Q(Reverb)
+Q(buckets)
+Q(reflection)
+Q(feedback)
+Q(effects)
+Q(source)
+

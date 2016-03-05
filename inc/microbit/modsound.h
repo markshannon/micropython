@@ -27,29 +27,12 @@ extern const mp_obj_type_t microbit_sound_bytes_type;
 
 microbit_sound_bytes_obj_t *new_microbit_sound_bytes(void);
 
-typedef void (*fill_func_ptr)(struct _microbit_instrument_t *inst);
+/* Should return the new phase, which should be phase + phase_delta * SOUND_CHUNK_SIZE */
+typedef int32_t (*oscillator_func_ptr)( microbit_sound_bytes_obj_t *frame, int32_t phase_delta, int32_t phase);
 
-typedef struct _microbit_instrument_t {
+typedef struct _microbit_oscillator_obj_t {
     mp_obj_base_t base;
-    bool pressed;
-    bool active;
-    int32_t phase;
-    int32_t phase_delta;
-    microbit_sound_bytes_obj_t *buffer;
-    void *state;
-    fill_func_ptr generator;
-
-    inline void press() {
-        this->pressed = true;
-        this->phase = 0;
-    }
-
-    inline void release() {
-        this->pressed = false;
-    }
-
-} microbit_instrument_t;
-
-microbit_instrument_t *simple_organ(void);
+    oscillator_func_ptr oscillator ;
+} microbit_oscillator_obj_t;
 
 #endif // __MICROPY_INCLUDED_MICROBIT_SOUND_H__

@@ -45,40 +45,44 @@ extern "C" {
 #include "microbit/microbitobj.h"
 
 #define TheTimer NRF_TIMER1
+#define TheTimer_IRQn TIMER1_IRQn
 
 extern void gpiote_init(PinName pin, uint8_t channel_number);
 
 
 /** Initialize the Programmable Peripheral Interconnect peripheral.
- * Mostly copied from pwmout_api.c
  */
 static void ppi_init(uint8_t channel0, uint8_t channel1) {
     NRF_TIMER_Type *timer  = TheTimer;
 
-    /* Attach CLOCK[0] and CLOCK[1] to channel0
-     * CLOCK[2] and CLOCK[3] to channel1 */
-    NRF_PPI->CH[0].EEP = (uint32_t)&timer->EVENTS_COMPARE[0];
-    NRF_PPI->CH[0].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[channel0];
-    NRF_PPI->CH[1].EEP = (uint32_t)&timer->EVENTS_COMPARE[1];
+    /* Attach CLOCK[0] and CLOCK[1] to GPIOTE channel0
+     * CLOCK[2] and CLOCK[3] to GPIOTE channel1
+     * Use PPI channels 1-4 (I think 0 is used by twi) */
+    NRF_PPI->CH[1].EEP = (uint32_t)&timer->EVENTS_COMPARE[0];
     NRF_PPI->CH[1].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[channel0];
-    NRF_PPI->CH[2].EEP = (uint32_t)&timer->EVENTS_COMPARE[2];
-    NRF_PPI->CH[2].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[channel1];
-    NRF_PPI->CH[3].EEP = (uint32_t)&timer->EVENTS_COMPARE[3];
+    NRF_PPI->CH[2].EEP = (uint32_t)&timer->EVENTS_COMPARE[1];
+    NRF_PPI->CH[2].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[channel0];
+    NRF_PPI->CH[3].EEP = (uint32_t)&timer->EVENTS_COMPARE[2];
     NRF_PPI->CH[3].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[channel1];
+    NRF_PPI->CH[4].EEP = (uint32_t)&timer->EVENTS_COMPARE[3];
+    NRF_PPI->CH[4].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[channel1];
 
     // Enable PPI channels.
-    NRF_PPI->CHEN |= 15;
+    NRF_PPI->CHEN |= 30;
 }
 
+/* Start and stop timer 1 including workarounds for Anomaly 73 for Timer
+* http://www.nordicsemi.com/eng/content/download/29490/494569/file/nRF51822-PAN%20v3.0.pdf
+*/
 static inline void timer_stop(void) {
     TheTimer->TASKS_STOP = 1;
+    *(uint32_t *)0x40009C0C = 0; //for Timer 1
+
 }
 
 static inline void timer_start(void) {
+    *(uint32_t *)0x40009C0C = 1; //for Timer 1
     TheTimer->TASKS_START = 1;
-    __NOP();
-    __NOP();
-    __NOP();
 }
 
 static int32_t previous_value = 0;
@@ -111,6 +115,7 @@ volatile int32_t sound_buffer_read_index;
 
 #define sound_buffer_ptr (MP_STATE_PORT(async_data)[2])
 #define buffer_iter (MP_STATE_PORT(async_data)[3])
+
 
 static void sound_data_fetcher(void) {
     if (buffer_iter == NULL)
@@ -263,6 +268,7 @@ mp_obj_t sound_init(void) {
         initialised = true;
         //Allocate buffer
         sound_buffer_ptr = (int8_t *)malloc(SOUND_BUFFER_SIZE);
+        NVIC_DisableIRQ(TheTimer_IRQn);
         TheTimer->POWER = 1;
         NRF_TIMER_Type *timer = TheTimer;
         timer_stop();
@@ -270,11 +276,13 @@ mp_obj_t sound_init(void) {
         timer->MODE = TIMER_MODE_MODE_Timer;
         timer->BITMODE = TIMER_BITMODE_BITMODE_16Bit << TIMER_BITMODE_BITMODE_Pos;
         timer->PRESCALER = 0; //Full speed
+        timer->INTENCLR = TIMER_INTENCLR_COMPARE0_Msk | TIMER_INTENCLR_COMPARE1_Msk |
+                          TIMER_INTENCLR_COMPARE2_Msk | TIMER_INTENCLR_COMPARE3_Msk;
         timer->SHORTS = 0;
     }
     return sound_reset();
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(sound___init___obj, sound_init);
+MP_DEFINE_CONST_FUN_OBJ_0(sound___init___obj, sound_init);
 
 
 STATIC mp_obj_t start() {
@@ -294,7 +302,6 @@ STATIC mp_obj_t play_source(mp_obj_t src) {
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_sound_play_source_obj, play_source);
-
 
 const mp_obj_type_t microbit_sound_bytes_type = {
     { &mp_type_type },
@@ -320,7 +327,7 @@ microbit_sound_bytes_obj_t *new_microbit_sound_bytes(void) {
     return res;
 }
 
-STATIC const mp_map_elem_t globals_table[] = {
+STATIC const mp_map_elem_t sound_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_sound) },
     { MP_OBJ_NEW_QSTR(MP_QSTR___init__), (mp_obj_t)&sound___init___obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_start), (mp_obj_t)&microbit_sound_start_obj },
@@ -330,12 +337,12 @@ STATIC const mp_map_elem_t globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_set_pins), (mp_obj_t)&microbit_sound_set_pins_obj },
 };
 
-STATIC MP_DEFINE_CONST_DICT(module_globals, globals_table);
+STATIC MP_DEFINE_CONST_DICT(sound_module_globals, sound_globals_table);
 
 const mp_obj_module_t sound_module = {
     .base = { &mp_type_module },
     .name = MP_QSTR_sound,
-    .globals = (mp_obj_dict_t*)&module_globals,
+    .globals = (mp_obj_dict_t*)&sound_module_globals,
 };
 
 

@@ -69,9 +69,19 @@ static uint32_t async_music_wait_ticks;
 static bool async_music_loop;
 static uint16_t async_music_notes_len;
 static uint16_t async_music_notes_index;
-static microbit_instrument_t *async_music_instrument;
+static mp_obj_t async_music_instrument;
 
 STATIC uint32_t start_note(const char *note_str, size_t note_len);
+
+STATIC void press(mp_obj_t instrument, int32_t freq) {
+    mp_obj_t meth = mp_load_attr(instrument, MP_QSTR_press);
+    mp_call_function_1(meth, MP_OBJ_NEW_SMALL_INT(freq));
+}
+
+STATIC void release(mp_obj_t instrument) {
+    mp_obj_t meth = mp_load_attr(instrument, MP_QSTR_release);
+    mp_call_function_0(meth);
+}
 
 void microbit_music_tick(void) {
     if (async_music_state == ASYNC_MUSIC_STATE_IDLE) {
@@ -86,7 +96,7 @@ void microbit_music_tick(void) {
 
     if (async_music_state == ASYNC_MUSIC_STATE_ARTICULATE) {
         // turn off output and rest
-        async_music_instrument->release();
+        release(async_music_instrument);
         //async_music_pin->setAnalogValue(0);
         async_music_wait_ticks = ticks + ARTICULATION_MS;
         async_music_state = ASYNC_MUSIC_STATE_NEXT_NOTE;
@@ -97,7 +107,7 @@ void microbit_music_tick(void) {
                 async_music_notes_index = 0;
             } else {
                 async_music_state = ASYNC_MUSIC_STATE_IDLE;
-                async_music_instrument->release();
+                release(async_music_instrument);
                 return;
             }
         }
@@ -109,7 +119,7 @@ void microbit_music_tick(void) {
         }
         if (note == mp_const_none) {
             // a rest (is this even used anymore?)
-            async_music_instrument->release();
+            release(async_music_instrument);
             //async_music_pin->setAnalogValue(0);
             async_music_wait_ticks = 60000 / music_state.bpm;
             async_music_state = ASYNC_MUSIC_STATE_NEXT_NOTE;
@@ -239,13 +249,9 @@ STATIC uint32_t start_note(const char *note_str, size_t note_len) {
                 //pin->setAnalogPeriodUs(periods_us[note_index] << -octave);
             }
         }
-        // 8.333kHz sampling frequency = 120µs.
-        async_music_instrument->phase_delta = (((1<<24)*120)/cycle_period_us)<<8;
-        // Set phase to 0 for consistent sound.
-        async_music_instrument->phase = 0;
-        async_music_instrument->press();
+        press(async_music_instrument, 1000000/cycle_period_us);
     } else {
-        async_music_instrument->release();
+        release(async_music_instrument);
         //pin->setAnalogValue(0);
     }
 
@@ -285,6 +291,11 @@ STATIC mp_obj_t microbit_music_stop(mp_uint_t n_args, const mp_obj_t *args) {
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(microbit_music_stop_obj, 0, 1, microbit_music_stop);
+
+/* Temporary hack */
+mp_obj_t simple_organ(void) {
+    return NULL;
+}
 
 STATIC mp_obj_t microbit_music_play(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t allowed_args[] = {
@@ -364,11 +375,8 @@ STATIC mp_obj_t microbit_music_pitch(mp_uint_t n_args, const mp_obj_t *pos_args,
 
     // TO DO -- Use a sine wave generator for pitch.
 
-    // Set phase to 0 for consistent sound.
-    async_music_instrument->phase = 0;
-    async_music_instrument->phase_delta = frequency * ((1<<30)/8333*4);
     sound_play_source(async_music_instrument, false);
-    async_music_instrument->press();
+    press(async_music_instrument, frequency);
 
     if (duration >= 0) {
         // use async machinery to stop the pitch after the duration
