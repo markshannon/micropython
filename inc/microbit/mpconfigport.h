@@ -94,6 +94,8 @@ extern const struct _mp_obj_module_t love_module;
 extern const struct _mp_obj_module_t neopixel_module;
 extern const struct _mp_obj_module_t random_module;
 extern const struct _mp_obj_module_t audio_module;
+extern const struct _mp_obj_module_t samples_module;
+extern const struct _mp_obj_module_t effects_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_microbit), (mp_obj_t)&microbit_module }, \
@@ -104,6 +106,8 @@ extern const struct _mp_obj_module_t audio_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_neopixel), (mp_obj_t)&neopixel_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_random), (mp_obj_t)&random_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_audio), (mp_obj_t)&audio_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_samples), (mp_obj_t)&samples_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_effects), (mp_obj_t)&effects_module }, \
     \
     /* the following provide aliases for existing modules */ \
     { MP_OBJ_NEW_QSTR(MP_QSTR_collections), (mp_obj_t)&mp_module_collections }, \

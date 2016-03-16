@@ -391,3 +391,13 @@ Q(play)
 Q(AudioFrame)
 Q(pins)
 Q(source)
+
+Q(Sample)
+Q(samples)
+
+Q(effects)
+Q(Reverb)
+Q(reflection)
+Q(buckets)
+Q(feedback)
+
