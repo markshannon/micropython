@@ -11,6 +11,7 @@
 #include "py/mphal.h"
 #include "lib/readline.h"
 #include "lib/utils/pyexec.h"
+#include "modfile.h"
 
 extern void microbit_init(void);
     
@@ -36,8 +37,7 @@ void microbit_display_exception(mp_obj_t exc_in) {
     }
 }
 
-void do_strn(const char *src, size_t len) {
-    mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR___main__, src, len, 0);
+static void do_lexer(mp_lexer_t *lex) {
     if (lex == NULL) {
         printf("MemoryError: lexer could not allocate memory\n");
         return;
@@ -68,6 +68,18 @@ void do_strn(const char *src, size_t len) {
     }
 }
 
+
+void do_strn(const char *src, size_t len) {
+    mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR___main__, src, len, 0);
+    do_lexer(lex);
+}
+
+void do_file(file_descriptor_obj *fd) {
+    mp_lexer_t *lex = microbit_file_lexer(MP_QSTR___main__, fd);
+    do_lexer(lex);
+}
+
+
 static char *stack_top;
 
 typedef struct _appended_script_t {
@@ -78,9 +90,10 @@ typedef struct _appended_script_t {
 
 #define APPENDED_SCRIPT ((const appended_script_t*)0x3e000)
 
-void mp_run(void) {
+void mp_run(bool hard_reboot) {
     int stack_dummy;
     stack_top = (char*)&stack_dummy;
+    file_descriptor_obj *main_module;
     mp_stack_ctrl_init();
     mp_stack_set_limit(1800); // stack is 2k
 
@@ -105,9 +118,11 @@ void mp_run(void) {
     readline_init0();
     microbit_init();
 
-    if (APPENDED_SCRIPT->header[0] == 'M' && APPENDED_SCRIPT->header[1] == 'P') {
+    if (hard_reboot && APPENDED_SCRIPT->header[0] == 'M' && APPENDED_SCRIPT->header[1] == 'P') {
         // run appended script
         do_strn(APPENDED_SCRIPT->str, APPENDED_SCRIPT->len);
+    } else if (hard_reboot && (main_module = microbit_open("__main__.py", 11, false, false))) {
+        do_file(main_module);
     } else if (pyexec_mode_kind == PYEXEC_MODE_FRIENDLY_REPL) {
         // from microbit import *
         mp_import_all(mp_import_name(MP_QSTR_microbit, mp_const_empty_tuple, MP_OBJ_NEW_SMALL_INT(0)));
@@ -143,22 +158,17 @@ void gc_collect(void) {
 }
 
 mp_lexer_t *mp_lexer_new_from_file(const char *filename) {
-    (void)filename;
-    return NULL;
+    file_descriptor_obj *fd = microbit_open(filename, strlen(filename), false, false);
+    return microbit_file_lexer(qstr_from_str(filename), fd);
 }
 
 mp_import_stat_t mp_import_stat(const char *path) {
-    (void)path;
+    if (microbit_find_file(path, strlen(path)) != FILE_NOT_FOUND) {
+        return MP_IMPORT_STAT_FILE;
+    }
     return MP_IMPORT_STAT_NO_EXIST;
 }
 
-mp_obj_t mp_builtin_open(uint n_args, const mp_obj_t *args, mp_map_t *kwargs) {
-    (void)n_args;
-    (void)args;
-    (void)kwargs;
-    return mp_const_none;
-}
-MP_DEFINE_CONST_FUN_OBJ_KW(mp_builtin_open_obj, 1, mp_builtin_open);
 
 void nlr_jump_fail(void *val) {
     (void)val;

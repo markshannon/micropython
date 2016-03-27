@@ -6,7 +6,7 @@
 extern "C" {
 #include "lib/ticker.h"
 
-    void mp_run(void);
+    void mp_run(bool hard_reboot);
     
     void microbit_button_init(void);
     void microbit_accelerometer_init(void);
@@ -34,8 +34,10 @@ void app_main() {
     microbit_button_init();
     microbit_accelerometer_init();
 
+    bool hard_reboot = true;
     while (1) {
-        mp_run();
+        mp_run(hard_reboot);
+        hard_reboot = false;
     }
 }
 

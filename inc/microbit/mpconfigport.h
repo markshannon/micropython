@@ -80,10 +80,10 @@ void mp_hal_stdout_tx_strn_cooked(const char *str, mp_uint_t len);
 
 // extra built in names to add to the global namespace
 extern const struct _mp_obj_fun_builtin_t mp_builtin_help_obj;
-extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
+extern const struct _mp_obj_fun_builtin_t microbit_open_obj;
 #define MICROPY_PORT_BUILTINS \
     { MP_OBJ_NEW_QSTR(MP_QSTR_help), (mp_obj_t)&mp_builtin_help_obj }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_open), (mp_obj_t)&mp_builtin_open_obj }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_open), (mp_obj_t)&microbit_open_obj }, \
 
 // extra builtin modules to add to the list of known ones
 extern const struct _mp_obj_module_t microbit_module;
@@ -93,6 +93,7 @@ extern const struct _mp_obj_module_t antigravity_module;
 extern const struct _mp_obj_module_t love_module;
 extern const struct _mp_obj_module_t neopixel_module;
 extern const struct _mp_obj_module_t random_module;
+extern const struct _mp_obj_module_t file_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_microbit), (mp_obj_t)&microbit_module }, \
@@ -102,6 +103,7 @@ extern const struct _mp_obj_module_t random_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_love), (mp_obj_t)&love_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_neopixel), (mp_obj_t)&neopixel_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_random), (mp_obj_t)&random_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_file), (mp_obj_t)&file_module }, \
     \
     /* the following provide aliases for existing modules */ \
     { MP_OBJ_NEW_QSTR(MP_QSTR_collections), (mp_obj_t)&mp_module_collections }, \
