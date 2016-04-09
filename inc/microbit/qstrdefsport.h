@@ -148,6 +148,7 @@ Q(slice)
 Q(text)
 Q(SlicedImage)
 Q(ScrollingString)
+Q(light_meter)
 
 Q(MicroBitButton)
 Q(button_a)

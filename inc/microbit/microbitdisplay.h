@@ -17,6 +17,8 @@ typedef struct _microbit_display_obj_t {
 
     void advanceRow();
     inline void setPinsForRow(uint8_t brightness);
+    void initLightMeter();
+    inline void readLightMeter();
 
     
 } microbit_display_obj_t;

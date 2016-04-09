@@ -27,6 +27,8 @@
 #include <string.h>
 #include "microbitobj.h"
 #include "nrf_gpio.h"
+#include <../delay/nrf_delay.h>
+#include "analogin_api.h"
 
 extern "C" {
 #include "py/runtime.h"
@@ -190,6 +192,59 @@ inline void microbit_display_obj_t::setPinsForRow(uint8_t brightness) {
     }
 }
 
+#define DISPLAY_TICKER_SLOT 1
+
+/**
+  * Workaround defect 3 in PAN 2.3
+  *
+  * https://www.nordicsemi.com/eng/nordic/download_resource/24634/5/88440387
+  */
+static void analog_disable(void) {
+    NRF_ADC->ENABLE = ADC_ENABLE_ENABLE_Disabled;
+    NRF_ADC->CONFIG = (ADC_CONFIG_RES_8bit << ADC_CONFIG_RES_Pos) |
+                      (ADC_CONFIG_INPSEL_SupplyTwoThirdsPrescaling << ADC_CONFIG_INPSEL_Pos) |
+                      (ADC_CONFIG_REFSEL_VBG                       << ADC_CONFIG_REFSEL_Pos) |
+                      (ADC_CONFIG_PSEL_Disabled                    << ADC_CONFIG_PSEL_Pos) |
+                      (ADC_CONFIG_EXTREFSEL_None                   << ADC_CONFIG_EXTREFSEL_Pos);
+}
+
+static bool col_read_started = false;
+static uint8_t col_to_read;
+static int16_t light_levels[3];
+
+static int32_t meter_callback(void) {
+    if (col_read_started) {
+        light_levels[col_to_read] = NRF_ADC->RESULT;
+        analog_disable();
+        clear_ticker_callback(DISPLAY_TICKER_SLOT);
+        col_to_read += 1;
+        return -1;
+    } else {
+        /* Start ADC read, but don't block on it */
+        NRF_ADC->TASKS_START = 1;
+        col_read_started = true;
+        /* Allow 80µs. Data sheet says it takes 68µs */
+        return 5;
+    }
+}
+
+void microbit_display_obj_t::initLightMeter() {
+    if (col_to_read == 3) {
+        col_to_read = 0;
+    }
+    for(int row = MIN_ROW_PIN; row <= MAX_ROW_PIN; row++) {
+        nrf_gpio_pin_clear(row);
+    }
+    nrf_gpio_cfg_output(MIN_COLUMN_PIN+col_to_read);
+    nrf_gpio_pin_set(MIN_COLUMN_PIN+col_to_read);
+    nrf_delay_us(1);
+    nrf_gpio_cfg_input(MIN_COLUMN_PIN+col_to_read, NRF_GPIO_PIN_NOPULL);
+    analogin_t adc;
+    analogin_init(&adc, (PinName)(MIN_COLUMN_PIN+col_to_read));
+    col_read_started = false;
+    set_ticker_callback(DISPLAY_TICKER_SLOT, meter_callback, 100);
+}
+
 void microbit_display_obj_t::advanceRow() {
     // First, clear the old row.
     nrf_gpio_pins_set(COLUMN_PINS_MASK);
@@ -235,8 +290,6 @@ static const uint16_t render_timings[] =
     97,  //   8,   199,   3184µs,   195%
 // Always on  9,   375,   6000µs,   188%
 };
-
-#define DISPLAY_TICKER_SLOT 1
 
 static int32_t callback(void) {
     microbit_display_obj_t *display = &microbit_display_obj;
@@ -316,7 +369,14 @@ static void microbit_display_update(void) {
 #define GREYSCALE_MASK ((1<<MAX_BRIGHTNESS)-2)
 
 void microbit_display_tick(void) {
-
+    static int t = 0;
+    if (t == 0) {
+        microbit_display_obj.initLightMeter();
+        microbit_display_obj.previous_brightness = 0;
+        t = 3;
+    }
+    t--;
+    /*
     microbit_display_obj.advanceRow();
 
     microbit_display_update();
@@ -324,6 +384,7 @@ void microbit_display_tick(void) {
     if (microbit_display_obj.brightnesses & GREYSCALE_MASK) {
         set_ticker_callback(DISPLAY_TICKER_SLOT, callback, 1800);
     }
+    */
 }
 
 
@@ -391,6 +452,18 @@ mp_obj_t microbit_display_clear_func(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_display_clear_obj, microbit_display_clear_func);
 
+mp_obj_t microbit_display_light_meter_func(mp_obj_t self_in) {
+    microbit_display_obj_t *self = (microbit_display_obj_t*)self_in;
+    int32_t result = light_levels[0] + light_levels[1] + light_levels[2];
+    result = 1061 - result;
+    if (result < 0)
+        result = 0;
+    if (result > 1023)
+        result = 1023;
+    return MP_OBJ_NEW_SMALL_INT(result);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(microbit_display_light_meter_obj, microbit_display_light_meter_func);
+
 void microbit_display_set_pixel(microbit_display_obj_t *display, mp_int_t x, mp_int_t y, mp_int_t bright) {
     if (x < 0 || y < 0 || x > 4 || y > 4) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "index out of bounds."));
@@ -430,6 +503,7 @@ STATIC const mp_map_elem_t microbit_display_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_show), (mp_obj_t)&microbit_display_show_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_scroll), (mp_obj_t)&microbit_display_scroll_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_clear), (mp_obj_t)&microbit_display_clear_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_light_meter), (mp_obj_t)&microbit_display_light_meter_obj },
 };
 
 STATIC MP_DEFINE_CONST_DICT(microbit_display_locals_dict, microbit_display_locals_dict_table);
