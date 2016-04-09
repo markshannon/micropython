@@ -44,7 +44,7 @@ void microbit_display_clear(void);
 
 void microbit_display_init(void);
 
-void microbit_display_tick(void);
+void microbit_display_update(void);
 
 }
 

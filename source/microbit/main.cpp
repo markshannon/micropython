@@ -61,7 +61,7 @@ void microbit_ticker(void) {
     }
 
     // Update the display.
-    microbit_display_tick();
+    microbit_display_update();
 
     // Update the music
     microbit_music_tick();
@@ -75,12 +75,15 @@ void __register_exitproc() {
 
 void microbit_init(void) {
     uBit.display.disable();
-    microbit_display_init();
 
     // Start the ticker.
     uBit.systemTicker.detach();
     ticker_init(microbit_ticker);
     ticker_start();
+
+    // Start the display
+    microbit_display_init();
+
 }
 
 }
