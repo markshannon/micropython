@@ -1,40 +1,15 @@
 #!/usr/bin/env python
 
 """
-pyboard interface
 
-This module provides the Pyboard class, used to communicate with and
-control the pyboard over a serial USB connection.
+This module allows files to loaded onto the Micro:Bit without
+flashing the device.
 
 Example usage:
 
-    import pyboard
-    pyb = pyboard.Pyboard('/dev/ttyACM0')
+$ ./tools/upload.py  /dev/ttyACM0 ./examples/simple_slalom.py --name main.py
 
-Or:
-
-    pyb = pyboard.Pyboard('192.168.1.1')
-
-Then:
-
-    pyb.enter_raw_repl()
-    pyb.exec('pyb.LED(1).on()')
-    pyb.exit_raw_repl()
-
-Note: if using Python2 then pyb.exec must be written as pyb.exec_.
-To run a script from the local machine on the board and print out the results:
-
-    import pyboard
-    pyboard.execfile('test.py', device='/dev/ttyACM0')
-
-This script can also be run directly.  To execute a local script, use:
-
-    ./pyboard.py /dev/ttyACM0 test.py
-
-Or:
-
-    python pyboard.py /dev/ttyACM0 test.py
-
+Will upload the simple_slalom game into main.py
 """
 
 import sys
@@ -85,7 +60,6 @@ def make_save_script(pyfile, filename):
     into the persistent script area on the microbit'''
     output = [
         '''
-import file
 fd = open("%s", "w")
 f = fd.write''' % filename
     ]

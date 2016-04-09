@@ -48,7 +48,7 @@ typedef struct _file_descriptor_obj {
     uint8_t seek_offset;
     uint8_t end_chunk;
     uint8_t end_offset;
-    bool write;
+    bool writable;
     bool open;
     bool binary;
 } file_descriptor_obj;

@@ -1,6 +1,6 @@
 
-import file
-from microbit import display
+import os
+from microbit import display, Image
 
 
 def data_stream(seed):
@@ -35,7 +35,6 @@ def verify_file(name, stream, n, count, mode):
     with open(name, mode) as fd:
         while True:
             buf = fd.read(n)
-            #print ("Got buffer of length %d: %s" % (len(buf), buf))
             assert len(buf) <= n
             if not buf:
                 break
@@ -57,24 +56,20 @@ def write_text_to_file(name, seed, n, count):
             fd.write(s)
 
 def clear_files():
-    for f in file.list():
-        file.remove(f)
+    for f in os.listdir():
+        os.remove(f)
 
 def test_small_files():
     name = "test1.dat"
-    write_data_to_file(name, 73, 16, 2)
-    verify_file(name, data_stream(73), 16, 2, 'b')
-    name = "test2.dat"
     write_data_to_file(name, 12, 16, 5)
     verify_file(name, data_stream(12), 20, 4, 'b')
-    name = "test3.dat"
+    name = "test2.dat"
     write_data_to_file(name, 101, 64, 5)
     verify_file(name, data_stream(101), 32, 10, 'b')
-    assert file.list() == [ "test1.dat", "test2.dat", "test3.dat" ]
-    file.remove("test1.dat")
-    file.remove("test2.dat")
-    file.remove("test3.dat")
-    assert not file.list()
+    assert os.listdir() == [ "test1.dat", "test2.dat" ]
+    os.remove("test1.dat")
+    os.remove("test2.dat")
+    assert not os.listdir()
 
 def test_text_file():
     name = "test1.txt"
@@ -83,10 +78,10 @@ def test_text_file():
     name = "test2.txt"
     write_text_to_file(name, 35, 16, 5)
     verify_file(name, text_stream(35), 20, 4, 't')
-    assert file.list() == [ "test1.txt", "test2.txt" ]
-    file.remove("test1.txt")
-    file.remove("test2.txt")
-    assert not file.list()
+    assert os.listdir() == [ "test1.txt", "test2.txt" ]
+    os.remove("test1.txt")
+    os.remove("test2.txt")
+    assert not os.listdir()
 
 
 def test_many_files():
@@ -95,17 +90,21 @@ def test_many_files():
         write_data_to_file(name, i*3, 16, 4)
         verify_file(name, data_stream(i*3), 16, 4, 'b')
     for i in range(100):
-        file.remove("%d.dat" % i)
+        os.remove("%d.dat" % i)
         name = "_%d.dat" % i
         write_data_to_file(name, i*3, 16, 4)
         verify_file(name, data_stream(i*3), 16, 4, 'b')
     for i in range(100):
-        file.remove("_%d.dat" % i)
-    assert not file.list()
+        os.remove("_%d.dat" % i)
+    assert not os.listdir()
 
-clear_files()
-test_small_files()
-test_many_files()
-test_text_file()
-
-display.scroll("Test: PASS")
+try:
+    clear_files()
+    test_small_files()
+    test_many_files()
+    test_text_file()
+    print("File test: PASS")
+    display.show(Image.HAPPY)
+except AssertError as ae:
+    print("File test: FAIL. %s" % ae)
+    display.show(Image.SAD)
