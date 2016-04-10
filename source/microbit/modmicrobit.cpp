@@ -73,7 +73,6 @@ STATIC mp_obj_t microbit_temperature(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(microbit_temperature_obj, microbit_temperature);
 
-
 STATIC const mp_map_elem_t microbit_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_microbit) },
 

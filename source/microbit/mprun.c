@@ -11,7 +11,7 @@
 #include "py/mphal.h"
 #include "lib/readline.h"
 #include "lib/utils/pyexec.h"
-#include "modfile.h"
+#include "filesystem.h"
 
 extern void microbit_init(void);
     
@@ -121,7 +121,7 @@ void mp_run(bool hard_reboot) {
     if (hard_reboot && APPENDED_SCRIPT->header[0] == 'M' && APPENDED_SCRIPT->header[1] == 'P') {
         // run appended script
         do_strn(APPENDED_SCRIPT->str, APPENDED_SCRIPT->len);
-    } else if (hard_reboot && (main_module = microbit_open("main.py", 7, false, false))) {
+    } else if (hard_reboot && (main_module = microbit_file_open("main.py", 7, false, false))) {
         do_file(main_module);
     } else if (pyexec_mode_kind == PYEXEC_MODE_FRIENDLY_REPL) {
         // from microbit import *
@@ -157,20 +157,12 @@ void gc_collect(void) {
     gc_collect_end();
 }
 
-mp_lexer_t *mp_lexer_new_from_file(const char *filename) {
-    file_descriptor_obj *fd = microbit_open(filename, strlen(filename), false, false);
-    if (fd == NULL)
-        return NULL;
-    return microbit_file_lexer(qstr_from_str(filename), fd);
-}
-
 mp_import_stat_t mp_import_stat(const char *path) {
     if (microbit_find_file(path, strlen(path)) != FILE_NOT_FOUND) {
         return MP_IMPORT_STAT_FILE;
     }
     return MP_IMPORT_STAT_NO_EXIST;
 }
-
 
 void nlr_jump_fail(void *val) {
     (void)val;

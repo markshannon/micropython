@@ -98,6 +98,7 @@ def test_many_files():
         os.remove("_%d.dat" % i)
     assert not os.listdir()
 
+display.clear()
 try:
     clear_files()
     test_small_files()
@@ -105,6 +106,6 @@ try:
     test_text_file()
     print("File test: PASS")
     display.show(Image.HAPPY)
-except AssertError as ae:
-    print("File test: FAIL. %s" % ae)
+except Exception as ae:
     display.show(Image.SAD)
+    raise

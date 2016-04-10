@@ -23,8 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef __MICROPY_INCLUDED_PERSISTENCE_H__
-#define __MICROPY_INCLUDED_PERSISTENCE_H__
+#ifndef __MICROPY_INCLUDED_FILESYSTEM_H__
+#define __MICROPY_INCLUDED_FILESYSTEM_H__
 
 #include "nrf51.h"
 #include "nrf_nvmc.h"
@@ -35,19 +35,26 @@ inline uint32_t persistent_page_size(void) {
 }
 
 bool is_persistent_page_aligned(const void *ptr);
-void persistent_write(const void *dest, const void *src, uint32_t byte_count);
+
+/** WARNING: This function may require 1k of heap space in order to hold data when erasing a page.
+ * Returns -1 if it cannot allocate sufficient memory.
+ */
+int persistent_write(const void *dest, const void *src, uint32_t byte_count);
+/** WARNING: This function may require 1k of heap space in order to hold data when erasing a page.
+ * Returns -1 if it cannot allocate sufficient memory.
+ */
+int persistent_write_byte(const uint8_t *dest, const uint8_t val);
+
 void persistent_write_unchecked(const void *dest, const void *src, uint32_t byte_count);
-void persistent_write_byte(const uint8_t *dest, const uint8_t val);
-void persistent_erase(const void *dest, uint32_t byte_count);
 void persistent_write_byte_unchecked(const uint8_t *dest, const uint8_t val);
+
+void persistent_erase_page(const void *page);
 
 typedef struct _file_descriptor_obj {
     mp_obj_base_t base;
     uint8_t start_chunk;
     uint8_t seek_chunk;
     uint8_t seek_offset;
-    uint8_t end_chunk;
-    uint8_t end_offset;
     bool writable;
     bool open;
     bool binary;
@@ -60,12 +67,15 @@ typedef struct _file_descriptor_obj {
 #define UNUSED_CHUNK 255
 #define FREED_CHUNK  0
 #define FILE_START 254
+#define PERSISTENT_DATA_MARKER 253
 
 #define MAX_FILENAME_LENGTH 40
 
+//Minimum number of free chunks to justify sweeping.
+//If this is too low it may cause excessive wear
+#define MIN_CHUNKS_FOR_SWEEP 8
 
 typedef struct _file_header {
-    uint8_t end_chunk;
     uint8_t end_offset;
     uint8_t name_len;
     char filename[MAX_FILENAME_LENGTH];
@@ -80,6 +90,11 @@ typedef struct _file_chunk {
     uint8_t next_chunk;
 } file_chunk;
 
+typedef struct _persistent_config_t {
+    // Must start with a marker, so that we can identify it.
+    uint8_t marker; // Should always be PERSISTENT_DATA_MARKER
+} persistent_config_t;
+
 #define FILE_NOT_FOUND ((uint8_t)-1)
 
 #define CHUNKS_IN_FILE_SYSTEM 160
@@ -87,9 +102,23 @@ typedef struct _file_chunk {
 #define STATIC_ASSERT(e) extern char static_assert_failed[(e) ? 1 : -1]
 
 uint8_t microbit_find_file(const char *name, int name_len);
-file_descriptor_obj *microbit_open(const char *name, uint32_t name_len, bool write, bool binary);
+file_descriptor_obj *microbit_file_open(const char *name, uint32_t name_len, bool write, bool binary);
+void microbit_file_close(file_descriptor_obj *fd);
+mp_uint_t microbit_file_read(mp_obj_t obj, void *buf, mp_uint_t size, int *errcode);
+mp_uint_t microbit_file_write(mp_obj_t obj, const void *buf, mp_uint_t size, int *errcode);
+mp_obj_t microbit_file_name(file_descriptor_obj *fd);
+
+mp_obj_t microbit_remove(mp_obj_t filename);
+mp_obj_t microbit_file_list(void);
+mp_obj_t microbit_file_size(mp_obj_t filename);
+
 mp_lexer_t *microbit_file_lexer(qstr src_name, file_descriptor_obj *fd);
+
+void microbit_filesystem_init(void);
+
+extern const mp_obj_type_t microbit_bytesio_type;
+extern const mp_obj_type_t microbit_textio_type;
 
 #define min(a,b) (((a)<(b))?(a):(b))
 
-#endif // __MICROPY_INCLUDED_PERSISTENCE_H__
+#endif // __MICROPY_INCLUDED_FILESYSTEM_H__
