@@ -61,23 +61,42 @@
  * Writing to files relies on the persistent API which is high-level wrapper on top of the Nordic SDK.
  */
 
-
-extern int8_t file_system_data[];
-
 STATIC_ASSERT((sizeof(file_chunk) == CHUNK_SIZE));
 
 // Pages are numbered from 1 to PAGES_IN_FILE_SYSTEM, as we need to reserve 0 as the FREED marker.
 static file_chunk *file_system_chunks = NULL;
 
-static inline void *first_page(void) {
-    return &file_system_data[0];
+static inline uint32_t roundup(uint32_t val, uint32_t align) {
+    return (val+align-1)&(-align);
 }
 
-static inline void *last_page(void) {
-    return &(((file_chunk *)&file_system_data)[CHUNKS_IN_FILE_SYSTEM]);
+extern uint32_t __etext;
+
+static void *first_page(void) {
+    return (void *)roundup((uint32_t)&__etext, persistent_page_size());
+}
+
+#define APPENDED_SCRIPT_ADDR 0x3e000
+#define END_OF_ROM 0x40000
+
+static uint16_t last_page_index;
+static uint8_t CHUNKS_IN_FILE_SYSTEM;
+
+static inline void *last_page() {
+    return (void *)(last_page_index<<8);
 }
 
 void microbit_filesystem_init(void) {
+    if (((char *)APPENDED_SCRIPT_ADDR)[0] == 'M') {
+        last_page_index = (APPENDED_SCRIPT_ADDR - persistent_page_size())>>8;
+    } else {
+        last_page_index = (END_OF_ROM-persistent_page_size())>>8;
+    }
+    uint32_t chunks = ((last_page() - first_page())>>LOG_CHUNK_SIZE)-1;
+    if (chunks > 248)
+        CHUNKS_IN_FILE_SYSTEM = 248;
+    else
+        CHUNKS_IN_FILE_SYSTEM = chunks;
     file_chunk *base = first_page();
     if (base->marker == PERSISTENT_DATA_MARKER) {
         file_system_chunks = &base[(persistent_page_size()>>LOG_CHUNK_SIZE)-1];

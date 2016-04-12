@@ -155,17 +155,3 @@ int persistent_write_byte(const uint8_t *dest, const uint8_t val) {
         return persistent_write(dest, &val, 1);
     }
 }
-
-#define FIVE(x) x,x,x,x,x
-#define TWENTY(x) FIVE(x),FIVE(x),FIVE(x),FIVE(x)
-#define ONE_HUNDRED(x) TWENTY(x),TWENTY(x),TWENTY(x),TWENTY(x),TWENTY(x)
-
-#define CHUNK(x) ONE_HUNDRED(x),TWENTY(x),FIVE(x),x,x,x
-#define FIVE_CHUNKS(x) CHUNK(x),CHUNK(x),CHUNK(x),CHUNK(x),CHUNK(x)
-#define TWENTY_CHUNKS(x) FIVE_CHUNKS(x),FIVE_CHUNKS(x),FIVE_CHUNKS(x),FIVE_CHUNKS(x)
-#define ONE_SIXTY_EIGHT_CHUNKS(x) TWENTY_CHUNKS(x),TWENTY_CHUNKS(x),TWENTY_CHUNKS(x),TWENTY_CHUNKS(x),\
-TWENTY_CHUNKS(x),TWENTY_CHUNKS(x),TWENTY_CHUNKS(x),TWENTY_CHUNKS(x),FIVE_CHUNKS(x),CHUNK(x),CHUNK(x),CHUNK(x)
-
-const int8_t file_system_data[] __attribute__ ((aligned (1024))) = { ONE_SIXTY_EIGHT_CHUNKS(-1) };
-
-STATIC_ASSERT((sizeof(file_system_data) == (CHUNKS_IN_FILE_SYSTEM+8)*CHUNK_SIZE));

@@ -97,8 +97,6 @@ typedef struct _persistent_config_t {
 
 #define FILE_NOT_FOUND ((uint8_t)-1)
 
-#define CHUNKS_IN_FILE_SYSTEM 160
-
 #define STATIC_ASSERT(e) extern char static_assert_failed[(e) ? 1 : -1]
 
 uint8_t microbit_find_file(const char *name, int name_len);

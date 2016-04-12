@@ -17,9 +17,11 @@ void app_main() {
     
     // debugging: print memory layout
     /*
+    extern uint32_t __etext;
     extern uint32_t __data_start__, __data_end__;
     extern uint32_t __bss_start__, __bss_end__;
     extern uint32_t __HeapLimit, __StackLimit, __StackTop;
+    printf("__etext = %p\r\n", &__etext);
     printf("__data_start__ = %p\r\n", &__data_start__);
     printf("__data_end__   = %p\r\n", &__data_end__);
     printf("__bss_start_ _ = %p\r\n", &__bss_start__);
