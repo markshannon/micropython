@@ -19,7 +19,7 @@ void audio_set_pins(mp_obj_t pin0_obj, mp_obj_t pin1_obj);
 
 typedef struct _microbit_audio_frame_obj_t {
     mp_obj_base_t base;
-    int8_t data[AUDIO_CHUNK_SIZE];
+    uint8_t data[AUDIO_CHUNK_SIZE];
 } microbit_audio_frame_obj_t;
 
 extern const mp_obj_type_t microbit_audio_frame_type;
