@@ -405,3 +405,8 @@ Q(name)
 Q(listdir)
 Q(machine)
 Q(size)
+
+Q(radio)
+Q(enable)
+Q(send)
+Q(recv)
