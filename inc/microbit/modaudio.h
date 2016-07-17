@@ -2,7 +2,6 @@
 #ifndef __MICROPY_INCLUDED_MICROBIT_AUDIO_H__
 #define __MICROPY_INCLUDED_MICROBIT_AUDIO_H__
 
-#include "nrf.h"
 #include "py/obj.h"
 #include "py/runtime.h"
 
