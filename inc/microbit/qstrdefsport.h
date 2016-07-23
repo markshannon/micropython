@@ -51,6 +51,7 @@ Q(pin15)
 Q(pin16)
 Q(pin19)
 Q(pin20)
+Q(get_config)
 
 Q(MicroBitImage)
 Q(Image)

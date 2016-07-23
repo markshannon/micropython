@@ -32,6 +32,7 @@ extern "C" {
 #include "py/obj.h"
 #include "py/mphal.h"
 #include "modmicrobit.h"
+#include "nrf51.h"
 
 STATIC mp_obj_t microbit_reset_(void) {
     uBit.reset();
@@ -67,6 +68,12 @@ STATIC mp_obj_t microbit_panic(mp_uint_t n_args, const mp_obj_t *args) {
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(microbit_panic_obj, 0, 1, microbit_panic);
+
+STATIC mp_obj_t microbit_gpiote_config(mp_obj_t channel_in) {
+    mp_int_t channel = mp_obj_get_int(channel_in);
+    return mp_obj_new_int(NRF_GPIOTE->CONFIG[channel]);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(microbit_get_gpiote_config_obj, microbit_gpiote_config);
 
 STATIC mp_obj_t microbit_temperature(void) {
     return mp_obj_new_int(uBit.thermometer.getTemperature());
@@ -112,6 +119,7 @@ STATIC const mp_map_elem_t microbit_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_pin16), (mp_obj_t)&microbit_p16_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_pin19), (mp_obj_t)&microbit_p19_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_pin20), (mp_obj_t)&microbit_p20_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_get_config), (mp_obj_t)&microbit_get_gpiote_config_obj },
 };
 
 STATIC MP_DEFINE_CONST_DICT(microbit_module_globals, microbit_module_globals_table);
