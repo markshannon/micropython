@@ -36,7 +36,25 @@ typedef struct _microbit_i2c_obj_t {
     MicroBitI2C *i2c;
 } microbit_i2c_obj_t;
 
-STATIC mp_obj_t microbit_i2c_read(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+void microbit_i2c_read(int address, char *data, int length, bool repeated) {
+    int err = I2C::read(address, data, length, repeated);
+    if (err != 0) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OSError, "I2C read failed with error code %d", err));
+    }
+}
+    int err =  I2C::write(args[0].u_int << 1, (char*)bufinfo.buf, bufinfo.len, args[2].u_bool);
+    if (err) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OSError, "I2C write failed with error code %d", err));
+    }
+
+void microbit_i2c_write(int address, char *data, int length, bool repeated) {
+    int err = I2C::write(address, data, length, repeated);
+    if (err != 0) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OSError, "I2C write failed with error code %d", err));
+    }
+}
+
+STATIC mp_obj_t microbit_i2c_read_func(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_addr,     MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_n,        MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
@@ -51,16 +69,13 @@ STATIC mp_obj_t microbit_i2c_read(mp_uint_t n_args, const mp_obj_t *pos_args, mp
     // do the I2C read
     vstr_t vstr;
     vstr_init_len(&vstr, args[1].u_int);
-    int err = self->i2c->read(args[0].u_int << 1, vstr.buf, vstr.len, args[2].u_bool);
-    if (err != MICROBIT_OK) {
-        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OSError, "I2C read failed with error code %d", err));
-    }
+    microbit_i2c_read(args[0].u_int << 1, vstr.buf, vstr.len, args[2].u_bool);
     // return bytes object with read data
     return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(microbit_i2c_read_obj, 1, microbit_i2c_read);
+MP_DEFINE_CONST_FUN_OBJ_KW(microbit_i2c_read_obj, 1, microbit_i2c_read_func);
 
-STATIC mp_obj_t microbit_i2c_write(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t microbit_i2c_write_func(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_addr,     MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_buf,      MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -75,14 +90,15 @@ STATIC mp_obj_t microbit_i2c_write(mp_uint_t n_args, const mp_obj_t *pos_args, m
     // do the I2C write
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[1].u_obj, &bufinfo, MP_BUFFER_READ);
-    int err = self->i2c->write(args[0].u_int << 1, (char*)bufinfo.buf, bufinfo.len, args[2].u_bool);
-    if (err != MICROBIT_OK) {
+    microbit_i2c_write(
+    int err =  I2C::write(args[0].u_int << 1, (char*)bufinfo.buf, bufinfo.len, args[2].u_bool);
+    if (err) {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OSError, "I2C write failed with error code %d", err));
     }
     return mp_const_none;
 
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(microbit_i2c_write_obj, 1, microbit_i2c_write);
+MP_DEFINE_CONST_FUN_OBJ_KW(microbit_i2c_write_obj, 1, microbit_i2c_write_func);
 
 STATIC const mp_map_elem_t microbit_i2c_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_read), (mp_obj_t)&microbit_i2c_read_obj },
