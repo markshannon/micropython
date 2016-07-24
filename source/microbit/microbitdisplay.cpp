@@ -34,6 +34,7 @@ extern "C" {
 #include "modmicrobit.h"
 #include "microbitimage.h"
 #include "microbitdisplay.h"
+#include "microbitpin.h"
 #include "lib/iters.h"
 #include "lib/ticker.h"
 
@@ -423,6 +424,19 @@ MP_DEFINE_CONST_FUN_OBJ_KW(microbit_display_scroll_obj, 1, microbit_display_scro
 
 mp_obj_t microbit_display_on_func(mp_obj_t obj) {
     microbit_display_obj_t *self = (microbit_display_obj_t*)obj;
+    /* Try to reclaim the pins we need */
+    microbit_obj_pin_fail_if_cant_acquire(&microbit_p3_obj);
+    microbit_obj_pin_fail_if_cant_acquire(&microbit_p4_obj);
+    microbit_obj_pin_fail_if_cant_acquire(&microbit_p6_obj);
+    microbit_obj_pin_fail_if_cant_acquire(&microbit_p7_obj);
+    microbit_obj_pin_fail_if_cant_acquire(&microbit_p9_obj);
+    microbit_obj_pin_fail_if_cant_acquire(&microbit_p10_obj);
+    microbit_obj_pin_set_mode(&microbit_p3_obj, PINMODE_INDEX_DISPLAY);
+    microbit_obj_pin_set_mode(&microbit_p4_obj, PINMODE_INDEX_DISPLAY);
+    microbit_obj_pin_set_mode(&microbit_p6_obj, PINMODE_INDEX_DISPLAY);
+    microbit_obj_pin_set_mode(&microbit_p7_obj, PINMODE_INDEX_DISPLAY);
+    microbit_obj_pin_set_mode(&microbit_p9_obj, PINMODE_INDEX_DISPLAY);
+    microbit_obj_pin_set_mode(&microbit_p10_obj, PINMODE_INDEX_DISPLAY);
     /* Re-enable the display loop.  This will resume any animations in
      * progress and display any static image. */
     self->active = true;
@@ -440,6 +454,13 @@ mp_obj_t microbit_display_off_func(mp_obj_t obj) {
     /* Disable the row strobes, allowing the columns to be used freely for
      * GPIO. */
     nrf_gpio_pins_clear(ROW_PINS_MASK);
+    /* Free pins for other uses */
+    microbit_obj_pin_set_mode(&microbit_p3_obj, PINMODE_INDEX_UNUSED);
+    microbit_obj_pin_set_mode(&microbit_p4_obj, PINMODE_INDEX_UNUSED);
+    microbit_obj_pin_set_mode(&microbit_p6_obj, PINMODE_INDEX_UNUSED);
+    microbit_obj_pin_set_mode(&microbit_p7_obj, PINMODE_INDEX_UNUSED);
+    microbit_obj_pin_set_mode(&microbit_p9_obj, PINMODE_INDEX_UNUSED);
+    microbit_obj_pin_set_mode(&microbit_p10_obj, PINMODE_INDEX_UNUSED);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_display_off_obj, microbit_display_off_func);

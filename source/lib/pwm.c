@@ -29,6 +29,7 @@
 #include "nrf_gpio.h"
 #include "py/runtime.h"
 #include "py/gc.h"
+#include "PinNames.h"
 
 #define PWM_TICKER_INDEX 2
 
@@ -184,3 +185,6 @@ int pwm_set_duty_cycle(int32_t pin, int32_t value) {
     return 0;
 }
 
+void pwm_release_pin(PinName pin) {
+    pwm_turn_off_pin(pin);
+}

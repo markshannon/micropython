@@ -450,3 +450,11 @@ Q(group)
 Q(RATE_250KBIT)
 Q(RATE_1MBIT)
 Q(RATE_2MBIT)
+
+Q(unused)
+         ^
+Q(analog)
+Q(digital)
+Q(button)
+Q(touch)
+Q(3v)
