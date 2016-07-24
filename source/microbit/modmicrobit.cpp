@@ -59,10 +59,17 @@ STATIC mp_obj_t microbit_running_time(void) {
 MP_DEFINE_CONST_FUN_OBJ_0(microbit_running_time_obj, microbit_running_time);
 
 STATIC mp_obj_t microbit_panic(mp_uint_t n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        uBit.panic();
-    } else {
-        uBit.panic(mp_obj_get_int(args[0]));
+    while (1) {
+        mp_hal_display_string("PANIC!  ");
+        if (n_args) {
+            char buf[4];
+            mp_int_t err = mp_obj_get_int(args[0]);
+            buf[0] = '0' + (err/100)%10;
+            buf[1] = '0' + (err/10)%10;
+            buf[2] = '0' + err%10;
+            buf[3] = '\0';
+            mp_hal_display_string(buf);
+        }
     }
     return mp_const_none;
 }

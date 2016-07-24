@@ -175,3 +175,11 @@ mp_import_stat_t mp_import_stat(const char *path) {
 void nlr_jump_fail(void *val) {
     (void)val;
 }
+
+void *malloc(size_t size) {
+    return gc_alloc(size, false);
+}
+
+void free(void *mem) {
+    gc_free(mem);
+}

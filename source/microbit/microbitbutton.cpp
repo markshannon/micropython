@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2015 Damien P. George
+ * Copyright (c) 2015 Damien P. George, 2016 Mark Shannon
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -67,9 +67,6 @@ mp_obj_t microbit_button_was_pressed(mp_obj_t self_in) {
     return result;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_button_was_pressed_obj, microbit_button_was_pressed);
-
-void microbit_button_init(void) {
-}
 
 STATIC const mp_map_elem_t microbit_button_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_is_pressed), (mp_obj_t)&microbit_button_is_pressed_obj },

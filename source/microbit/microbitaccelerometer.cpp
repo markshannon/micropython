@@ -61,18 +61,14 @@ static void update(microbit_accelerometer_obj_t *self) {
     }
 }
 
-STATIC void accelerometer_listener(MicroBitEvent evt) {
-    if (evt.value > GESTURE_NONE && evt.value <= GESTURE_SHAKE) {
-        gesture_state |= 1 << evt.value;
+void microbit_accelerometer_event(uint16_t source, uint16_t value) {
+    if(value > GESTURE_NONE && value <= GESTURE_SHAKE) {
+        gesture_state |= 1 << value;
         if (gesture_list_cur < 2 * GESTURE_LIST_SIZE) {
-            gesture_list[gesture_list_cur >> 1] |= evt.value << (4 * (gesture_list_cur & 1));
+            gesture_list[gesture_list_cur >> 1] |= value << (4 * (gesture_list_cur & 1));
             ++gesture_list_cur;
         }
     }
-}
-
-void microbit_accelerometer_init(void) {
-    uBit.MessageBus.listen(MICROBIT_ID_GESTURE, MICROBIT_EVT_ANY, accelerometer_listener, MESSAGE_BUS_LISTENER_IMMEDIATE);
 }
 
 mp_obj_t microbit_accelerometer_get_x(mp_obj_t self_in) {
