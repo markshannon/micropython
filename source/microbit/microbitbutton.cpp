@@ -28,23 +28,25 @@ extern "C" {
 
 #include "py/runtime.h"
 #include "microbitobj.h"
+#include "microbitpin.h"
 #include "modmicrobit.h"
 #include "nrf_gpio.h"
 
 typedef struct _microbit_button_obj_t {
     mp_obj_base_t base;
-    /* Stores pressed count in top 31 bits and was_pressed in the low bit */
-    PinName name;
+    const microbit_pin_obj_t *pin;
     uint8_t index;
 } microbit_button_obj_t;
 
+/* Stores pressed count in top 31 bits and was_pressed in the low bit */
 static mp_uint_t pressed[2];
-static int8_t sigmas[8];
-static int8_t debounced[8];
+static int8_t sigmas[8] = { 5, 5, 5, 5, 5, 5, 5, 5 };
+static bool debounced_high[8] = { true, true, true, true, true, true, true, true };
 
 mp_obj_t microbit_button_is_pressed(mp_obj_t self_in) {
     microbit_button_obj_t *self = (microbit_button_obj_t*)self_in;
-    return mp_obj_new_bool(debounced[self->name]);
+    /* Button is pressed if pin is low */
+    return mp_obj_new_bool(!debounced_high[self->pin->number]);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_button_is_pressed_obj, microbit_button_is_pressed);
 
@@ -97,47 +99,79 @@ STATIC const mp_obj_type_t microbit_button_type = {
 
 const microbit_button_obj_t microbit_button_a_obj = {
     {&microbit_button_type},
-    .name = microbit_p5_obj.name,
+    .pin = &microbit_p5_obj,
     .index = 0,
 };
 
 const microbit_button_obj_t microbit_button_b_obj = {
     {&microbit_button_type},
-    .name = microbit_p11_obj.name,
+    .pin = &microbit_p11_obj,
     .index = 1,
 };
 
-static bool update(PinName name) {
-    int not_pressed = nrf_gpio_pin_read(name);
-    int8_t sigma = sigmas[name&7] + 1-((not_pressed)<<1);
-    sigmas[name&7] = sigma;
+extern uint8_t microbit_pinmodes[];
+
+enum PinTransition
+{
+    LOW_LOW = 0,
+    LOW_HIGH = 1,
+    HIGH_LOW = 2,
+    HIGH_HIGH = 3
+};
+
+static PinTransition update(const microbit_pin_obj_t *pin) {
+    int32_t sigma = sigmas[pin->number&7];
+    PinTransition result;
+    if (nrf_gpio_pin_read(pin->name))
+        sigma++;
+    else
+        sigma--;
     if (sigma < 3) {
-        if (sigma < 0)
+        if (sigma < 0) {
             sigma = 0;
-        debounced[name&7] = false;
-        return not_pressed == 0;
+            result = LOW_LOW;
+        } else if (debounced_high[pin->number&7]) {
+            result = HIGH_LOW;
+            debounced_high[pin->number&7] = false;
+        } else {
+            result = LOW_LOW;
+        }
     } else if (sigma > 7) {
-        if (sigma > 12)
+        if (sigma > 12) {
             sigma = 12;
-        debounced[name&7] = true;
-        return not_pressed != 0;
+            result = HIGH_HIGH;
+        } else if (debounced_high[pin->number&7]) {
+            result = HIGH_HIGH;
+        } else {
+            result = LOW_HIGH;
+            debounced_high[pin->number&7] = true;
+        }
+    } else if (debounced_high[pin->number&7]) {
+        result = HIGH_HIGH;
+    } else {
+        result = LOW_LOW;
     }
-    return false;
+    sigmas[pin->number&7] = sigma;
+    return result;
 }
 
 void microbit_button_tick(void) {
     // Update both buttons and the touch pins.
-    if (update(microbit_button_a_obj.name))
+    // Button is pressed when its pin transfers from HIGH to LOW.
+    if (update(microbit_button_a_obj.pin) == HIGH_LOW)
         pressed[microbit_button_a_obj.index] = (pressed[microbit_button_a_obj.index] + 2) | 1;
-    if (update(microbit_button_b_obj.name))
+    if (update(microbit_button_b_obj.pin) == HIGH_LOW)
         pressed[microbit_button_b_obj.index] = (pressed[microbit_button_b_obj.index] + 2) | 1;
-    update(microbit_p0_obj.name);
-    update(microbit_p1_obj.name);
-    update(microbit_p2_obj.name);
+    if (microbit_obj_pin_get_mode(&microbit_p0_obj) == PINMODE_INDEX_TOUCH)
+        update(&microbit_p0_obj);
+    if (microbit_obj_pin_get_mode(&microbit_p1_obj) == PINMODE_INDEX_TOUCH)
+        update(&microbit_p1_obj);
+    if (microbit_obj_pin_get_mode(&microbit_p2_obj) == PINMODE_INDEX_TOUCH)
+        update(&microbit_p2_obj);
 }
 
-bool microbit_pin_debounced(PinName name) {
-    return debounced[name&7];
+bool microbit_pin_high_debounced(microbit_pin_obj_t *pin) {
+    return debounced_high[pin->number&7];
 }
 
 }

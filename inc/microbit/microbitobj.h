@@ -37,7 +37,7 @@ typedef struct _microbit_pin_obj_t {
     PinName name; // The pin number in the GPIO port.
 } microbit_pin_obj_t;
 
-microbit_pin_obj_t *microbit_obj_get_pin(mp_obj_t o);
+const microbit_pin_obj_t *microbit_obj_get_pin(mp_obj_t o);
 PinName microbit_obj_get_pin_name(mp_obj_t o);
 
 extern volatile bool compass_up_to_date;
@@ -45,6 +45,8 @@ extern volatile bool compass_updating;
 
 extern volatile bool accelerometer_up_to_date;
 extern volatile bool accelerometer_updating;
+
+extern void microbit_pin_init(void);
 
 }
 

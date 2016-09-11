@@ -123,7 +123,6 @@ extern const struct _mp_obj_module_t speech_module;
     void *async_data[2]; \
     void *async_music_data; \
     uint8_t *radio_buf; \
-    void *pwm_next_event; \
     void *audio_buffer; \
     void *audio_source; \
     void *speech_data;

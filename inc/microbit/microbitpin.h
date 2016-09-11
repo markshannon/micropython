@@ -41,13 +41,10 @@
 mp_obj_t microbit_pin_write_digital(mp_obj_t self_in, mp_obj_t value_in);
 mp_obj_t microbit_pin_read_digital(mp_obj_t self_in);
 
-typedef void (*release_funcptr)(PinName pin);
-
 typedef struct _pinmode {
     qstr name;
-    bool acquireable;
-    bool allows_digital_read;
-    release_funcptr release;
+    bool acquireable; /* Can the pin be acquired from this state? */
+    bool allows_digital_read; /* Is this state compatible with performing a digital read on this pin? */
 } microbit_pinmode_t;
 
 #define PINMODE_INDEX_UNUSED 0
@@ -60,6 +57,7 @@ typedef struct _pinmode {
 #define PINMODE_INDEX_I2C 7
 #define PINMODE_INDEX_SPI 8
 #define PINMODE_INDEX_3V 9
+#define PINMODE_INDEX_MUSIC 10
 
 void microbit_obj_pin_set_mode(const microbit_pin_obj_t *pin, uint8_t new_mode);
 
@@ -69,6 +67,11 @@ void microbit_obj_pin_acquire(const microbit_pin_obj_t *pin, uint8_t new_mode);
 
 bool microbit_obj_pin_mode_allows_digital_read(const microbit_pin_obj_t *pin);
 
-bool microbit_pin_debounced(PinName name);
+bool microbit_pin_high_debounced(microbit_pin_obj_t *pin);
+
+uint8_t microbit_obj_pin_get_mode(const microbit_pin_obj_t *pin);
+
+bool microbit_obj_pin_can_be_acquired(const microbit_pin_obj_t *pin);
+
 
 #endif // __MICROPY_INCLUDED_MICROBIT_MICROBITPIN_H__

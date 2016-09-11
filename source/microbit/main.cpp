@@ -76,6 +76,7 @@ void microbit_init(void) {
     uBit.display.disable();
     microbit_display_init();
     microbit_filesystem_init();
+    microbit_pin_init();
 
     // Start the ticker.
     uBit.systemTicker.detach();
