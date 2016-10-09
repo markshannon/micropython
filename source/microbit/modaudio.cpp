@@ -31,9 +31,11 @@ extern "C" {
 #include "microbit/modmicrobit.h"
 #include "gpio_api.h"
 #include "device.h"
+#include "nrf51.h"
 #include "nrf_gpio.h"
 #include "nrf_gpiote.h"
 #include "nrf_delay.h"
+#include "analogin_api.h"
 
 #include "lib/ticker.h"
 #include "py/runtime0.h"
@@ -49,13 +51,43 @@ extern "C" {
 #define TheTimer NRF_TIMER1
 #define TheTimer_IRQn TIMER1_IRQn
 
-#define DEBUG_AUDIO 0
+#define DEBUG_AUDIO 1
 #if DEBUG_AUDIO
 #include <stdio.h>
 #define DEBUG(s) printf s
 #else
 #define DEBUG(s) (void)0
 #endif
+
+union _i2f {
+    int32_t bits;
+    float value;
+};
+
+/* Convert a small float to a fixed-point number */
+int32_t float_to_fixed(float f, uint32_t scale) {
+    union _i2f x;
+    x.value = f;
+    int32_t sign = 1-((x.bits>>30)&2);
+    /* Subtract 127 from exponent for IEEE-754 and 23 for mantissa scaling */
+    int32_t exponent = ((x.bits>>23)&255)-150;
+    /* Mantissa scaled by 2**23, including implicit 1 */
+    int32_t mantissa = (1<<23) | ((x.bits)&((1<<23)-1));
+    int32_t shift = scale+exponent;
+    int32_t result;
+    if (shift > 0) {
+        result = sign*(mantissa<<shift);
+    } else if (shift < -31) {
+        result = 0;
+    } else {
+        result = sign*(mantissa>>(-shift));
+    }
+#if DEBUG_AUDIO
+    printf("Float %f: %d %d %x (scale %d) => %d\n", f, sign, exponent, mantissa, scale, result);
+#endif
+    return result;
+}
+
 
 void disable_gpiote(uint8_t channel)
 {
@@ -135,12 +167,36 @@ static volatile int32_t audio_buffer_read_index;
 static PinName pin0 = P0_3;
 static PinName pin1 = P0_2;
 
+typedef struct _audio_recorder_t {
+    mp_obj_base_t base;
+    volatile bool ready;
+    PinName pin;
+    uint8_t adc_pin;
+    int16_t trim;
+    volatile int16_t buffer_index;
+    uint32_t gain;
+    microbit_audio_frame_obj_t *frame;
+    uint8_t buffer[AUDIO_BUFFER_SIZE];
+} audio_recorder_t;
+
+void audio_record_start(uint8_t adc_pin) {
+    NRF_ADC->CONFIG &= ~ADC_CONFIG_PSEL_Msk;
+    NRF_ADC->CONFIG |= adc_pin << ADC_CONFIG_PSEL_Pos;
+    NRF_ADC->TASKS_START = 1;
+}
+
 #define audio_buffer_ptr MP_STATE_PORT(audio_buffer)
 #define audio_source_iter MP_STATE_PORT(audio_source)
+#define the_audio_recorder MP_STATE_PORT(audio_recorder)
 
 void audio_stop(void) {
     timer_stop();
     audio_source_iter = NULL;
+    if (the_audio_recorder != NULL) {
+        the_audio_recorder = NULL;
+        NRF_ADC->TASKS_STOP = 1;
+        NRF_ADC->ENABLE = ADC_ENABLE_ENABLE_Disabled;
+    }
     clear_ticker_callback(0);
     running = false;
     previous_value = 0;
@@ -155,7 +211,7 @@ void audio_stop(void) {
     //NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 }
 
-static int32_t audio_ticker(void);
+static int32_t audio_play_ticker(void);
 
 
 #define AUDIO_BUFFER_MASK (AUDIO_BUFFER_SIZE-1)
@@ -291,7 +347,7 @@ static inline void set_gpiote_output_pulses(int32_t val1, int32_t val2) {
     timer->TASKS_CLEAR = 1;
 }
 
-static int32_t audio_ticker(void) {
+static int32_t audio_play_ticker(void) {
     int32_t val1 = previous_value + delta;
     int32_t next_value = val1 + delta;
     previous_value = next_value;
@@ -410,7 +466,7 @@ void audio_play_source(mp_obj_t src, mp_obj_t pin1, mp_obj_t pin2, bool wait) {
     audio_data_fetcher_allow_gc();
     timer_start();
     running = true;
-    set_ticker_callback(0, audio_ticker, 80);
+    set_ticker_callback(0, audio_play_ticker, 80);
     if (!wait) {
         return;
     }
@@ -421,6 +477,80 @@ void audio_play_source(mp_obj_t src, mp_obj_t pin1, mp_obj_t pin2, bool wait) {
         __WFE();
     }
 }
+
+static int32_t audio_record_ticker(void) {
+    audio_recorder_t *recorder = (audio_recorder_t *)the_audio_recorder;
+    if (recorder == NULL)
+        return -1;
+    int32_t buffer_index = recorder->buffer_index = (recorder->buffer_index+1)&AUDIO_BUFFER_MASK;
+    if (NRF_ADC->BUSY) {
+        recorder->buffer[buffer_index] = 128;
+    } else {
+        int32_t value = (NRF_ADC->RESULT*recorder->gain)>>16;
+        value += recorder->trim;
+        // Clamp to 0-255 and adjust trim.
+        if (value < 0) {
+            value = 0;
+            recorder->trim += 1;
+        } else if (value > 255) {
+            value = 255;
+            recorder->trim -= 1;
+        }
+        recorder->buffer[buffer_index] = value;
+    }
+    audio_record_start(recorder->adc_pin);
+    if ((buffer_index&(AUDIO_CHUNK_SIZE-1)) == 0 && !recorder->ready) {
+        recorder->ready = true;
+    }
+    /* Needs to be triggered once per sample. */
+    return TICK_PER_SAMPLE;
+}
+
+mp_obj_t audio_recorder_next(mp_obj_t self_in) {
+    audio_recorder_t *self = (audio_recorder_t *)self_in;
+    if (self == NULL)
+        return MP_OBJ_STOP_ITERATION;
+    while (!self->ready) {
+        if (MP_STATE_VM(mp_pending_exception) != MP_OBJ_NULL) {
+            mp_obj_t ex = MP_STATE_VM(mp_pending_exception);
+            MP_STATE_VM(mp_pending_exception) = MP_OBJ_NULL;
+            nlr_raise(ex);
+        }
+        __WFE();
+    }
+    int32_t half = ((self->buffer_index>>LOG_AUDIO_CHUNK_SIZE)+1)&1;
+    const int32_t *half_buffer = (int32_t *)(((uint8_t *)self->buffer) + (half<<LOG_AUDIO_CHUNK_SIZE));
+    int32_t *data = (int32_t *)self->frame->data;
+    data[0] = half_buffer[0];
+    data[1] = half_buffer[1];
+    data[2] = half_buffer[2];
+    data[3] = half_buffer[3];
+    data[4] = half_buffer[4];
+    data[5] = half_buffer[5];
+    data[6] = half_buffer[6];
+    data[7] = half_buffer[7];
+    self->ready = false;
+    return self->frame;
+}
+
+const mp_obj_type_t microbit_audio_recorder_type = {
+    { &mp_type_type },
+    .name = MP_QSTR_record,
+    .print = NULL,
+    .make_new = NULL,
+    .call = NULL,
+    .unary_op = NULL,
+    .binary_op = NULL,
+    .attr = NULL,
+    .subscr = NULL,
+    .getiter = mp_identity,
+    .iternext = audio_recorder_next,
+    .buffer_p = {NULL},
+    .stream_p = NULL,
+    .bases_tuple = NULL,
+    .locals_dict = NULL,
+};
+
 
 STATIC mp_obj_t stop() {
     audio_stop();
@@ -446,6 +576,50 @@ STATIC mp_obj_t play(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_ar
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(microbit_audio_play_obj, 0, play);
 
+audio_recorder_t *audio_recorder_new(PinName pin, float gain) {
+    audio_recorder_t *res = m_new_obj(audio_recorder_t);
+    res->base.type = &microbit_audio_recorder_type;
+    res->pin = pin;
+    res->gain = float_to_fixed(gain, 14);
+    res->trim = 0;
+    res->ready = false;
+    res->buffer_index = AUDIO_BUFFER_SIZE-1;
+    memset(res->buffer, 128, AUDIO_BUFFER_SIZE);
+    res->frame = new_microbit_audio_frame();
+    analogin_t obj;
+    analogin_init(&obj, pin);
+    res->adc_pin = obj.adc_pin;
+    return res;
+}
+
+STATIC mp_obj_t record(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+        { MP_QSTR_gain, MP_ARG_OBJ, {.u_obj = mp_const_none } },
+    };
+    // parse args
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    mp_obj_t pin_obj = args[0].u_obj;
+    mp_obj_type_t *pin_type = mp_obj_get_type(pin_obj);
+    if (pin_type != &microbit_ad_pin_type && pin_type != & microbit_touch_pin_type)
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "Not an analog input pin"));
+    PinName pin = microbit_obj_get_pin_name(pin_obj);
+    float gain;
+    if (args[1].u_obj == mp_const_none) {
+        gain = 1.0;
+    } else {
+        gain = mp_obj_get_float(args[1].u_obj);
+    }
+    audio_recorder_t *res = audio_recorder_new(pin, gain);
+    audio_record_start(res->adc_pin);
+    set_ticker_callback(0, audio_record_ticker, 100);
+    the_audio_recorder = res;
+    return res;
+}
+MP_DEFINE_CONST_FUN_OBJ_KW(microbit_audio_record_obj, 0, record);
+
+
 bool microbit_audio_is_playing(void) {
     return running;
 }
@@ -469,7 +643,7 @@ STATIC mp_obj_t audio_frame_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t
     microbit_audio_frame_obj_t *self = (microbit_audio_frame_obj_t *)self_in;
     mp_int_t index = mp_obj_get_int(index_in);
     if (index < 0 || index >= AUDIO_CHUNK_SIZE) {
-         nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "index out of bounds"));
+         nlr_raise(mp_obj_new_exception_msg(&mp_type_IndexError, "frame index out of range"));
     }
     if (value_in == MP_OBJ_NULL) {
         // delete
@@ -535,33 +709,6 @@ mp_obj_t copyfrom(mp_obj_t self_in, mp_obj_t other) {
    return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_2(copyfrom_obj, copyfrom);
-
-union _i2f {
-    int32_t bits;
-    float value;
-};
-
-/* Convert a small float to a fixed-point number */
-int32_t float_to_fixed(float f, uint32_t scale) {
-    union _i2f x;
-    x.value = f;
-    int32_t sign = 1-((x.bits>>30)&2);
-    /* Subtract 127 from exponent for IEEE-754 and 23 for mantissa scaling */
-    int32_t exponent = ((x.bits>>23)&255)-150;
-    /* Mantissa scaled by 2**23, including implicit 1 */
-    int32_t mantissa = (1<<23) | ((x.bits)&((1<<23)-1));
-    int32_t shift = scale+exponent;
-    int32_t result;
-    if (shift > 0) {
-        result = sign*(mantissa<<shift);
-    } else if (shift < -31) {
-        result = 0;
-    } else {
-        result = sign*(mantissa>>(-shift));
-    }
-    // printf("Float %f: %d %d %x (scale %d) => %d\n", f, sign, exponent, mantissa, scale, result);
-    return result;
-}
 
 static void mult(microbit_audio_frame_obj_t *self, float f) {
     int scaled = float_to_fixed(f, 15);
@@ -634,6 +781,7 @@ STATIC const mp_map_elem_t audio_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_audio) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_stop), (mp_obj_t)&microbit_audio_stop_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_play), (mp_obj_t)&microbit_audio_play_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_record), (mp_obj_t)&microbit_audio_record_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_is_playing), (mp_obj_t)&microbit_audio_is_playing_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_AudioFrame), (mp_obj_t)&microbit_audio_frame_type },
 };

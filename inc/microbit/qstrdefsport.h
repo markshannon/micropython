@@ -398,6 +398,8 @@ Q(pin)
 Q(return_pin)
 Q(source)
 Q(copyfrom)
+Q(gain)
+Q(record)
 
 Q(name)
 

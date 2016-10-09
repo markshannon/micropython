@@ -128,6 +128,7 @@ extern const struct _mp_obj_module_t speech_module;
     void *pwm_next_event; \
     void *audio_buffer; \
     void *audio_source; \
+    void *audio_recorder; \
     void *speech_data;
 
 // We need to provide a declaration/definition of alloca()
