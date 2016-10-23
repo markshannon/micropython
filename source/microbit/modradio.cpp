@@ -139,8 +139,11 @@ static void radio_enable(void) {
     NRF_RADIO->BASE0 = radio_state.base0;
     NRF_RADIO->PREFIX0 = radio_state.prefix0;
     NRF_RADIO->TXADDRESS = 0; // transmit on logical address 0
-    NRF_RADIO->RXADDRESSES = 1; // a bit mask, listen only to logical address 0
-
+    if (radio_state.data_rate == RADIO_MODE_MODE_Ble_1Mbit) {
+        NRF_RADIO->RXADDRESSES = 255;
+    } else {
+        NRF_RADIO->RXADDRESSES = 1; // a bit mask, listen only to logical address 0
+    }
     // LFLEN=8 bits, S0LEN=0, S1LEN=0
     NRF_RADIO->PCNF0 = 0x00000008;
     // STATLEN=0, BALEN=4, ENDIAN=0 (little), WHITEEN=1
@@ -334,9 +337,7 @@ STATIC mp_obj_t mod_radio_config(size_t n_args, const mp_obj_t *pos_args, mp_map
                 }
 
                 case MP_QSTR_data_rate:
-                    if (!(value == RADIO_MODE_MODE_Nrf_250Kbit
-                        || value == RADIO_MODE_MODE_Nrf_1Mbit
-                        || value == RADIO_MODE_MODE_Nrf_2Mbit)) {
+                    if ((value & RADIO_MODE_MODE_Msk) != value) {
                         goto value_error;
                     }
                     new_state.data_rate = value;
