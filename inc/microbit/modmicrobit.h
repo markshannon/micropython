@@ -142,6 +142,7 @@ extern const struct _mp_obj_tuple_t microbit_music_tune_power_up_obj;
 extern const struct _mp_obj_tuple_t microbit_music_tune_power_down_obj;
 
 extern const mp_obj_type_t microbit_image_type;
+extern const mp_obj_type_t microbit_matrix_type;
 
 extern const mp_obj_type_t microbit_accelerometer_type;
 extern const struct _microbit_accelerometer_obj_t microbit_accelerometer_obj;
