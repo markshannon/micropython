@@ -462,3 +462,7 @@ Q(digital)
 Q(button)
 Q(touch)
 Q(3v)
+
+Q(Matrix)
+Q(invert)
+Q(transpose)
