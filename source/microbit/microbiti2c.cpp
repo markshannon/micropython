@@ -44,6 +44,7 @@ extern "C" {
 #include "py/runtime.h"
 #include "modmicrobit.h"
 #include "microbitobj.h"
+#include "microbitpin.h"
 
 
 typedef struct _microbit_i2c_obj_t {
@@ -63,17 +64,20 @@ STATIC mp_obj_t microbit_i2c_init(mp_uint_t n_args, const mp_obj_t *pos_args, mp
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-
-    PinName p_sda = MICROBIT_PIN_SDA;
-    PinName p_scl = MICROBIT_PIN_SCL;
-
+    const microbit_pin_obj_t *p_scl = microbit_obj_get_pin_from_name(self->i2c->scl);
+    const microbit_pin_obj_t *p_sda = microbit_obj_get_pin_from_name(self->i2c->sda);
+    microbit_obj_pin_free(p_scl);
+    microbit_obj_pin_free(p_sda);
     if (args[1].u_obj != mp_const_none) {
-        p_sda = microbit_obj_get_pin_name(args[1].u_obj);
+        p_sda = microbit_obj_get_pin(args[1].u_obj);
     }
     if (args[2].u_obj != mp_const_none) {
-        p_scl = microbit_obj_get_pin_name(args[2].u_obj);
+        p_scl = microbit_obj_get_pin(args[2].u_obj);
     }
-    ((mp_I2C*)self->i2c)->set_pins(p_sda, p_scl);
+    microbit_obj_pin_acquire(p_scl, MP_QSTR_i2c);
+    microbit_obj_pin_acquire(p_sda, MP_QSTR_i2c);
+
+    ((mp_I2C*)self->i2c)->set_pins(p_sda->name, p_scl->name);
 
     self->i2c->frequency(args[0].u_int); // also does i2c_reset()
 

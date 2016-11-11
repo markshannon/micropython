@@ -392,26 +392,49 @@ const mp_obj_type_t microbit_touch_pin_type = {
     .locals_dict = (mp_obj_dict_t*)&microbit_touch_pin_locals_dict,
 };
 
-const microbit_pin_obj_t microbit_p0_obj = {{&microbit_touch_pin_type}, 0, MICROBIT_PIN_P0};
-const microbit_pin_obj_t microbit_p1_obj = {{&microbit_touch_pin_type}, 1, MICROBIT_PIN_P1};
-const microbit_pin_obj_t microbit_p2_obj = {{&microbit_touch_pin_type}, 2, MICROBIT_PIN_P2};
-const microbit_pin_obj_t microbit_p3_obj = {{&microbit_ad_pin_type},   3,  MICROBIT_PIN_P3};
-const microbit_pin_obj_t microbit_p4_obj = {{&microbit_ad_pin_type},   4,  MICROBIT_PIN_P4};
-const microbit_pin_obj_t microbit_p5_obj = {{&microbit_dig_pin_type},  5,  MICROBIT_PIN_P5};
-const microbit_pin_obj_t microbit_p6_obj = {{&microbit_dig_pin_type},  6,  MICROBIT_PIN_P6};
-const microbit_pin_obj_t microbit_p7_obj = {{&microbit_dig_pin_type},  7,  MICROBIT_PIN_P7};
-const microbit_pin_obj_t microbit_p8_obj = {{&microbit_dig_pin_type},  8,  MICROBIT_PIN_P8};
-const microbit_pin_obj_t microbit_p9_obj = {{&microbit_dig_pin_type},  9,  MICROBIT_PIN_P9};
-const microbit_pin_obj_t microbit_p10_obj = {{&microbit_ad_pin_type},  10, MICROBIT_PIN_P10};
-const microbit_pin_obj_t microbit_p11_obj = {{&microbit_dig_pin_type}, 11, MICROBIT_PIN_P11};
-const microbit_pin_obj_t microbit_p12_obj = {{&microbit_dig_pin_type}, 12, MICROBIT_PIN_P12};
-const microbit_pin_obj_t microbit_p13_obj = {{&microbit_dig_pin_type}, 13, MICROBIT_PIN_P13};
-const microbit_pin_obj_t microbit_p14_obj = {{&microbit_dig_pin_type}, 14, MICROBIT_PIN_P14};
-const microbit_pin_obj_t microbit_p15_obj = {{&microbit_dig_pin_type}, 15, MICROBIT_PIN_P15};
-const microbit_pin_obj_t microbit_p16_obj = {{&microbit_dig_pin_type}, 16, MICROBIT_PIN_P16};
-const microbit_pin_obj_t microbit_p19_obj = {{&microbit_dig_pin_type}, 19, MICROBIT_PIN_P19};
-const microbit_pin_obj_t microbit_p20_obj = {{&microbit_dig_pin_type}, 20, MICROBIT_PIN_P20};
+static const uint8_t name_to_number = {
+    [MICROBIT_PIN_P0] = 0,
+    [MICROBIT_PIN_P1] = 1,
+    [MICROBIT_PIN_P2] = 2,
+    [MICROBIT_PIN_P3] = 3,
+    [MICROBIT_PIN_P4] = 4,
+    [MICROBIT_PIN_P5] = 5,
+    [MICROBIT_PIN_P6] = 6,
+    [MICROBIT_PIN_P7] = 7,
+    [MICROBIT_PIN_P8] = 8,
+    [MICROBIT_PIN_P9] = 9,
+    [MICROBIT_PIN_P0] = 10,
+    [MICROBIT_PIN_P11] = 11,
+    [MICROBIT_PIN_P12] = 12,
+    [MICROBIT_PIN_P13] = 13,
+    [MICROBIT_PIN_P14] = 14,
+    [MICROBIT_PIN_P15] = 15,
+    [MICROBIT_PIN_P16] = 16,
+    [MICROBIT_PIN_P19] = 19,
+    [MICROBIT_PIN_P20] = 20,
+};
 
+const microbit_pin_obj_t microbit_pins[] = {
+    [0] = {{&microbit_touch_pin_type}, 0, MICROBIT_PIN_P0};
+    [1] = {{&microbit_touch_pin_type}, 1, MICROBIT_PIN_P1};
+    [2] = {{&microbit_touch_pin_type}, 2, MICROBIT_PIN_P2};
+    [3] = {{&microbit_ad_pin_type},   3,  MICROBIT_PIN_P3};
+    [4] = {{&microbit_ad_pin_type},   4,  MICROBIT_PIN_P4};
+    [5] = {{&microbit_dig_pin_type},  5,  MICROBIT_PIN_P5};
+    [6] = {{&microbit_dig_pin_type},  6,  MICROBIT_PIN_P6};
+    [7] = {{&microbit_dig_pin_type},  7,  MICROBIT_PIN_P7};
+    [8] = {{&microbit_dig_pin_type},  8,  MICROBIT_PIN_P8};
+    [9] = {{&microbit_dig_pin_type},  9,  MICROBIT_PIN_P9};
+    [10] = {{&microbit_ad_pin_type},  10, MICROBIT_PIN_P10};
+    [11] = {{&microbit_dig_pin_type}, 11, MICROBIT_PIN_P11};
+    [12] = {{&microbit_dig_pin_type}, 12, MICROBIT_PIN_P12};
+    [13] = {{&microbit_dig_pin_type}, 13, MICROBIT_PIN_P13};
+    [14] = {{&microbit_dig_pin_type}, 14, MICROBIT_PIN_P14};
+    [15] = {{&microbit_dig_pin_type}, 15, MICROBIT_PIN_P15};
+    [16] = {{&microbit_dig_pin_type}, 16, MICROBIT_PIN_P16};
+    [19] = {{&microbit_dig_pin_type}, 19, MICROBIT_PIN_P19};
+    [20] = {{&microbit_dig_pin_type}, 20, MICROBIT_PIN_P20};
+};
 
 void microbit_pin_init(void) {
     nrf_gpio_cfg_input(microbit_p5_obj.name, NRF_GPIO_PIN_PULLUP);
@@ -430,8 +453,12 @@ void microbit_obj_pin_fail_if_cant_acquire(const microbit_pin_obj_t *pin) {
     }
 }
 
+static uint8_t pin_number(const microbit_pin_obj_t *pin) {
+    return pin - &microbit_pins[0];
+}
+
 void microbit_obj_pin_free(const microbit_pin_obj_t *pin) {
-    set_mode(pin->number, MP_QSTR_unused);
+    set_mode(pin_number(pin), MP_QSTR_unused);
 }
 
 bool microbit_obj_pin_can_be_acquired(const microbit_pin_obj_t *pin) {
@@ -442,7 +469,7 @@ bool microbit_obj_pin_can_be_acquired(const microbit_pin_obj_t *pin) {
 void microbit_obj_pin_acquire(const microbit_pin_obj_t *pin, qstr new_mode) {
     const microbit_pinmode_t *current_mode = mode_for_pin(pin);
     current_mode->release(pin);
-    set_mode(pin->number, new_mode);
+    set_mode(pin_number(pin), new_mode);
 }
 
 const microbit_pin_obj_t *microbit_obj_get_pin(mp_obj_t o) {
@@ -458,4 +485,6 @@ PinName microbit_obj_get_pin_name(mp_obj_t o) {
     return microbit_obj_get_pin(o)->name;
 }
 
+const microbit_pin_obj_t *microbit_obj_get_pin_from_name(PinName name) {
+    return &microbit_pins[name_to_number[name]];
 }

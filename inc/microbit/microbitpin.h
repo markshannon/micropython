@@ -60,5 +60,6 @@ qstr microbit_obj_pin_get_mode(const microbit_pin_obj_t *pin);
 
 bool microbit_obj_pin_can_be_acquired(const microbit_pin_obj_t *pin);
 
+const microbit_pin_obj_t *microbit_obj_get_pin_from_name(PinName name);
 
 #endif // __MICROPY_INCLUDED_MICROBIT_MICROBITPIN_H__

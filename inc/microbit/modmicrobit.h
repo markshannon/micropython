@@ -32,25 +32,27 @@ extern const mp_obj_type_t microbit_ad_pin_type;
 extern const mp_obj_type_t microbit_dig_pin_type;
 extern const mp_obj_type_t microbit_touch_pin_type;
 
-extern const struct _microbit_pin_obj_t microbit_p0_obj;
-extern const struct _microbit_pin_obj_t microbit_p1_obj;
-extern const struct _microbit_pin_obj_t microbit_p2_obj;
-extern const struct _microbit_pin_obj_t microbit_p3_obj;
-extern const struct _microbit_pin_obj_t microbit_p4_obj;
-extern const struct _microbit_pin_obj_t microbit_p5_obj;
-extern const struct _microbit_pin_obj_t microbit_p6_obj;
-extern const struct _microbit_pin_obj_t microbit_p7_obj;
-extern const struct _microbit_pin_obj_t microbit_p8_obj;
-extern const struct _microbit_pin_obj_t microbit_p9_obj;
-extern const struct _microbit_pin_obj_t microbit_p10_obj;
-extern const struct _microbit_pin_obj_t microbit_p11_obj;
-extern const struct _microbit_pin_obj_t microbit_p12_obj;
-extern const struct _microbit_pin_obj_t microbit_p13_obj;
-extern const struct _microbit_pin_obj_t microbit_p14_obj;
-extern const struct _microbit_pin_obj_t microbit_p15_obj;
-extern const struct _microbit_pin_obj_t microbit_p16_obj;
-extern const struct _microbit_pin_obj_t microbit_p19_obj;
-extern const struct _microbit_pin_obj_t microbit_p20_obj;
+extern const struct _microbit_pin_obj_t microbit_pins[];
+
+#define microbit_p0_obj microbit_pins[0]
+#define microbit_p1_obj microbit_pins[1]
+#define microbit_p2_obj microbit_pins[2]
+#define microbit_p3_obj microbit_pins[3]
+#define microbit_p4_obj microbit_pins[4]
+#define microbit_p5_obj microbit_pins[5]
+#define microbit_p6_obj microbit_pins[6]
+#define microbit_p7_obj microbit_pins[7]
+#define microbit_p8_obj microbit_pins[8]
+#define microbit_p9_obj microbit_pins[9]
+#define microbit_p10_obj microbit_pins[10]
+#define microbit_p11_obj microbit_pins[11]
+#define microbit_p12_obj microbit_pins[12]
+#define microbit_p13_obj microbit_pins[13]
+#define microbit_p14_obj microbit_pins[14]
+#define microbit_p15_obj microbit_pins[15]
+#define microbit_p16_obj microbit_pins[16]
+#define microbit_p19_obj microbit_pins[19]
+#define microbit_p20_obj microbit_pins[20]
 
 extern const mp_obj_type_t microbit_const_image_type;
 extern const struct _monochrome_5by5_t microbit_const_image_heart_obj;
