@@ -44,6 +44,10 @@ mp_obj_t microbit_compass_is_calibrated(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_compass_is_calibrated_obj, microbit_compass_is_calibrated);
 
 mp_obj_t microbit_compass_calibrate(mp_obj_t self_in) {
+    // FIXME !
+    nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "calibrate not implemented yet :("));
+
+/*
     // Calibration requires to pass control over to the DAL so it
     // can use the display to collect samples for the calibration.
     // It will do the calibration and then return here.
@@ -56,6 +60,7 @@ mp_obj_t microbit_compass_calibrate(mp_obj_t self_in) {
     uBit.systemTicker.detach();
     ticker_start();
     return mp_const_none;
+    */
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_compass_calibrate_obj, microbit_compass_calibrate);
 

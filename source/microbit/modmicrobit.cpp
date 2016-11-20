@@ -32,6 +32,7 @@ extern "C" {
 #include "py/obj.h"
 #include "py/mphal.h"
 #include "modmicrobit.h"
+#include "microbitdisplay.h"
 
 STATIC mp_obj_t microbit_reset_(void) {
     uBit.reset();
@@ -59,11 +60,9 @@ STATIC mp_obj_t microbit_running_time(void) {
 MP_DEFINE_CONST_FUN_OBJ_0(microbit_running_time_obj, microbit_running_time);
 
 STATIC mp_obj_t microbit_panic(mp_uint_t n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        uBit.panic();
-    } else {
-        uBit.panic(mp_obj_get_int(args[0]));
-    }
+    microbit_display_show(&microbit_display_obj, (microbit_image_obj_t *)&microbit_const_image_sad_obj);
+    mp_hal_delay_ms(2000);
+    microbit_reset();
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(microbit_panic_obj, 0, 1, microbit_panic);

@@ -11,7 +11,6 @@ extern "C" {
     void mp_run(void);
     
     void microbit_button_init(void);
-    void microbit_accelerometer_init(void);
     void microbit_button_tick(void);
     void pwm_init(void);
 }
@@ -31,12 +30,8 @@ void app_main() {
     printf("__StackLimit   = %p\r\n", &__StackLimit);
     printf("__StackTop     = %p\r\n", &__StackTop);
     */
-
-    currentFiber->flags |= MICROBIT_FIBER_FLAG_DO_NOT_PAGE;
-
     
     microbit_button_init();
-    microbit_accelerometer_init();
 
     while (1) {
         mp_run();
@@ -74,7 +69,6 @@ void __register_exitproc() {
 }
 
 void microbit_init(void) {
-    uBit.display.disable();
     microbit_display_init();
     microbit_filesystem_init();
     microbit_pin_init();
@@ -86,5 +80,14 @@ void microbit_init(void) {
     ticker_start();
     pwm_start();
 }
+extern void accelerometer_listener(uint16_t value);
+
+void microbit_event(uint16_t source, uint16_t value) {
+    if (source == MICROBIT_ID_GESTURE) {
+        accelerometer_listener(value);
+    }
+
+}
+
 
 }
