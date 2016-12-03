@@ -18,9 +18,9 @@ Functions
 
 .. py:function:: calibrate()
 
-    Starts the calibration process. An instructive message will be scrolled
+    Starts the calibration process. A brief message will be scrolled
     to the user after which they will need to rotate the device in order to
-    draw a circle on the LED display.
+    keep the flashing pixel pointing in the same direction.
 
 .. py:function:: is_calibrated()
 
@@ -35,31 +35,45 @@ Functions
 
 .. py:function:: get_x()
 
-    Gives the reading of the magnetic force on the ``x`` axis, as a
+    Gets the reading of the magnetic force on the ``x`` axis, as a
     positive or negative integer, depending on the direction of the
     force.
 
 
 .. py:function:: get_y()
 
-    Gives the reading of the magnetic force on the ``x`` axis, as a
+    Gets the reading of the magnetic force on the ``x`` axis, as a
     positive or negative integer, depending on the direction of the
     force.
 
 
 .. py:function:: get_z()
 
-    Gives the reading of the magnetic force on the ``x`` axis, as a
+    Gets the reading of the magnetic force on the ``x`` axis, as a
     positive or negative integer, depending on the direction of the
     force.
 
+.. py:function:: get_values()
+
+    Gets the reading of the magnetic force on all axes at once, as a three-element
+    tuple of integers ordered as X, Y, Z.
 
 .. py:function:: heading()
 
     Gives the compass heading, calculated from the above readings, as an
     integer in the range from 0 to 360, representing the angle in degrees,
     clockwise, with north as 0.
+    If the compass has not been calibrated, then this will call ``calibrate``.
 
+.. py:function:: start_calibrating()
+
+   Starts the compass calibrating in the background. The quality of the calibration
+   will depend on how much the micro:bit is rotated during calibration. Spinning 360 degrees
+   should be sufficient, but rotating in all three dimensions is better.
+
+.. py:function:: stop_calibrating()
+
+    Stop the background calibration and store the value into persistent storage.
 
 .. py:function:: get_field_strength()
 
