@@ -40,6 +40,14 @@ static inline void set(microbit_matrix_obj_t *self, mp_uint_t row, mp_uint_t col
     self->data[row*self->columns+col] = val;
 }
 
+float microbit_matrix_get(microbit_matrix_obj_t *m, mp_uint_t row, mp_uint_t col) {
+    return get(m, row, col);
+}
+
+void microbit_matrix_set(microbit_matrix_obj_t *m, mp_uint_t row, mp_uint_t col, float val) {
+    set(m, row, col, val);
+}
+
 static mp_obj_t microbit_matrix_new(const mp_obj_type_t *type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     (void)type_in;
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
@@ -112,7 +120,7 @@ static mp_obj_t matrix_height(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_matrix_height_obj, matrix_height);
 
-microbit_matrix_obj_t *microbit_matrix_invert(microbit_matrix_obj_t *self) {
+microbit_matrix_obj_t *microbit_matrix_invert_maybe(microbit_matrix_obj_t *self) {
     // We only support square matrices of size 4...
     if (self->rows != 4 || self->columns != 4) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "Not a 4x4 matrix"));
@@ -157,7 +165,7 @@ microbit_matrix_obj_t *microbit_matrix_invert(microbit_matrix_obj_t *self) {
 
     float det = s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
     if (det == 0) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "Singular matrix"));
+        return NULL;
     }
     float invdet = 1.0f / det;
     for (int i = 0; i < 16; i++) {
@@ -169,7 +177,17 @@ microbit_matrix_obj_t *microbit_matrix_invert(microbit_matrix_obj_t *self) {
 #undef M
 
 }
+
+
+microbit_matrix_obj_t *microbit_matrix_invert(microbit_matrix_obj_t *self) {
+    microbit_matrix_obj_t *result = microbit_matrix_invert_maybe(self);
+    if (result == NULL) {
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "Singular matrix"));
+    }
+}
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_matrix_invert_obj, microbit_matrix_invert);
+
+
 
 STATIC const mp_map_elem_t microbit_matrix_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_invert), (mp_obj_t)&microbit_matrix_invert_obj },
