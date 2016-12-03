@@ -31,6 +31,8 @@ extern "C" {
 #include "lib/ticker.h"
 #include "py/runtime.h"
 #include "modmicrobit.h"
+#include "py/mphal.h"
+#include "microbitdisplay.h"
 
 typedef struct _microbit_compass_obj_t {
     mp_obj_base_t base;
@@ -43,9 +45,137 @@ mp_obj_t microbit_compass_is_calibrated(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_compass_is_calibrated_obj, microbit_compass_is_calibrated);
 
+extern mp_obj_t microbit_accelerometer_get_x(mp_obj_t self_in);
+extern mp_obj_t microbit_accelerometer_get_y(mp_obj_t self_in);
+
 mp_obj_t microbit_compass_calibrate(mp_obj_t self_in) {
     // FIXME !
     nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "calibrate not implemented yet :("));
+    microbit_compass_obj_t *self = (microbit_compass_obj_t*)self_in;
+    struct Point
+    {
+        uint8_t x;
+        uint8_t y;
+        uint8_t on;
+    };
+
+    const int PERIMETER_POINTS = 12;
+    const int PIXEL1_THRESHOLD = 200;
+    const int PIXEL2_THRESHOLD = 800;
+
+    mp_hal_delay_ms(100);
+
+    microbit_matrix_obj_t *X = microbit_matrix_new(PERIMETER_POINTS, 4);
+    Point perimeter[PERIMETER_POINTS] = {{1,0,0}, {2,0,0}, {3,0,0}, {4,1,0}, {4,2,0}, {4,3,0}, {3,4,0}, {2,4,0}, {1,4,0}, {0,3,0}, {0,2,0}, {0,1,0}};
+    Point cursor = {2,2,0};
+
+    int samples = 0;
+
+    // Firstly, we need to take over the display. Ensure all active animations are paused.
+    microbit_display_scroll(&microbit_display_obj, "DRAW A CIRCLE");
+
+    while(samples < PERIMETER_POINTS)
+    {
+        // update our model of the flash status of the user controlled pixel.
+        cursor.on = (cursor.on + 1) % 4;
+
+        // take a snapshot of the current accelerometer data.
+        int x =  mp_obj_get_int(microbit_accelerometer_get_x(&microbit_accelerometer_obj));
+        int y =  mp_obj_get_int(microbit_accelerometer_get_y(&microbit_accelerometer_obj));
+
+        // Wait a little whie for the button state to stabilise (one scheduler tick).
+        mp_hal_delay_ms(10);
+
+        // Deterine the position of the user controlled pixel on the screen.
+        if (x < -PIXEL2_THRESHOLD)
+            cursor.x = 0;
+        else if (x < -PIXEL1_THRESHOLD)
+            cursor.x = 1;
+        else if (x > PIXEL2_THRESHOLD)
+            cursor.x = 4;
+        else if (x > PIXEL1_THRESHOLD)
+            cursor.x = 3;
+        else
+            cursor.x = 2;
+
+        if (y < -PIXEL2_THRESHOLD)
+            cursor.y = 0;
+        else if (y < -PIXEL1_THRESHOLD)
+            cursor.y = 1;
+        else if (y > PIXEL2_THRESHOLD)
+            cursor.y = 4;
+        else if (y > PIXEL1_THRESHOLD)
+            cursor.y = 3;
+        else
+            cursor.y = 2;
+
+        microbit_image_obj_t *img = microbit_image_for_char(' ');
+
+
+        // Turn on any pixels that have been visited.
+        for (int i=0; i<PERIMETER_POINTS; i++) {
+            if (perimeter[i].on) {
+                img->greyscale.setPixelValue(perimeter[i].x, perimeter[i].y, 9);
+            }
+        }
+
+        // Update the pixel at the users position.
+
+        img->greyscale.setPixelValue(cursor.x, cursor.y, 9);
+
+        // Update the buffer to the screen.
+        microbit_display_show(&microbit_display_obj, img);
+
+        // test if we need to update the state at the users position.
+        for (int i=0; i<PERIMETER_POINTS; i++)
+        {
+            if (cursor.x == perimeter[i].x && cursor.y == perimeter[i].y && !perimeter[i].on)
+            {
+                // Record the sample data for later processing...
+                microbit_matrix_set(X, samples, 0, self->compass->getX(RAW));
+                microbit_matrix_set(X, samples, 1, self->compass->getY(RAW));
+                microbit_matrix_set(X, samples, 2, self->compass->getZ(RAW));
+                microbit_matrix_set(X, samples, 3, 1);
+
+                // Record that this pixel has been visited.
+                perimeter[i].on = 1;
+                samples++;
+            }
+        }
+
+        mp_hal_delay_ms(100);
+    }
+
+    // We have enough sample data to make a fairly accurate calibration.
+    // We use a Least Mean Squares approximation, as detailed in Freescale application note AN2426.
+
+    // Firstly, calculate the square of each sample.
+    microbit_matrix_obj_t *Y = microbit_matrix_new(X->rows, 1);
+    for (int i = 0; i < X.height(); i++)
+    {
+        float v = microbit_matrix_get(X, i, 0)*microbit_matrix_get(X, i, 0) +
+                  microbit_matrix_get(X, i, 1)*microbit_matrix_get(X, i, 1) +
+                  microbit_matrix_get(X, i, 2)*microbit_matrix_get(X, i, 2);
+        Y.set(i, 0, v);
+    }
+
+    // Now perform a Least Squares Approximation.
+    microbit_matrix_obj_t *T = microbit_matrix_transpose(X);
+    microbit_matrix_obj_t *Alpha = microbit_matrix_invert(microbit_matrix_multiply(T, X));
+    microbit_matrix_obj_t *Gamma = microbit_matrix_multiply(T, Y);
+    microbit_matrix_obj_t *Beta = microbit_matrix_multiply(Alpha, Gamma);
+
+
+    // The result contains the approximate zero point of each axis, but doubled.
+    // Halve each sample, and record this as the compass calibration data.
+    CompassSample cal ((int)(microbit_matrix_get(Beta, 0, 0) / 2), (int)(microbit_matrix_get(Beta, 1, 0) / 2), (int)(microbit_matrix_get(Beta, 2, 0) / 2));
+    self->compass->setCalibration(cal);
+
+    // Show a smiley to indicate that we're done, and continue on with the user program.
+    microbit_display_show(&microbit_display_obj, &microbit_const_image_smile_obj);
+    mp_hal_delay_ms(1000);
+    microbit_display_clear();
+}
 
 /*
     // Calibration requires to pass control over to the DAL so it
@@ -61,7 +191,7 @@ mp_obj_t microbit_compass_calibrate(mp_obj_t self_in) {
     ticker_start();
     return mp_const_none;
     */
-}
+
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_compass_calibrate_obj, microbit_compass_calibrate);
 
 mp_obj_t microbit_compass_clear_calibration(mp_obj_t self_in) {
