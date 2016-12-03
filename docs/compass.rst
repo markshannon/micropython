@@ -18,9 +18,9 @@ Functions
 
 .. py:function:: calibrate()
 
-    Starts the calibration process. An instructive message will be scrolled
+    Starts the calibration process. A brief message will be scrolled
     to the user after which they will need to rotate the device in order to
-    draw a circle on the LED display.
+    keep the flashing pixel pointing in the same direction.
 
 .. py:function:: is_calibrated()
 
@@ -59,6 +59,7 @@ Functions
     Gives the compass heading, calculated from the above readings, as an
     integer in the range from 0 to 360, representing the angle in degrees,
     clockwise, with north as 0.
+    If the compass has not been calibrated, then this will call ``calibrate``.
 
 
 .. py:function:: get_field_strength()
