@@ -28,6 +28,10 @@
 
 #include "py/objtuple.h"
 
+
+/* For Calliope uncomment this line */
+#define CALLIOPE 1
+
 extern const mp_obj_type_t microbit_ad_pin_type;
 extern const mp_obj_type_t microbit_dig_pin_type;
 extern const mp_obj_type_t microbit_touch_pin_type;
@@ -51,6 +55,11 @@ extern const struct _microbit_pin_obj_t microbit_p15_obj;
 extern const struct _microbit_pin_obj_t microbit_p16_obj;
 extern const struct _microbit_pin_obj_t microbit_p19_obj;
 extern const struct _microbit_pin_obj_t microbit_p20_obj;
+#ifdef CALLIOPE
+extern const struct _microbit_pin_obj_t microbit_p28_obj;
+extern const struct _microbit_pin_obj_t microbit_p29_obj;
+extern const struct _microbit_pin_obj_t microbit_p30_obj;
+#endif
 
 extern const mp_obj_type_t microbit_const_image_type;
 extern const struct _monochrome_5by5_t microbit_const_image_heart_obj;

@@ -29,13 +29,8 @@
 extern "C" {
 
 #include "py/obj.h"
+#include "microbitpin.h"
 #include "PinNames.h"
-
-typedef struct _microbit_pin_obj_t {
-    mp_obj_base_t base;
-    uint8_t number; // The pin number on microbit board
-    PinName name; // The pin number in the GPIO port.
-} microbit_pin_obj_t;
 
 const microbit_pin_obj_t *microbit_obj_get_pin(mp_obj_t o);
 PinName microbit_obj_get_pin_name(mp_obj_t o);
@@ -47,6 +42,19 @@ extern volatile bool accelerometer_up_to_date;
 extern volatile bool accelerometer_updating;
 
 extern void microbit_pin_init(void);
+
+typedef struct _microbit_hardware_t {
+    const char *name;
+    PinName default_scl_pin;
+    PinName default_sda_pin;
+    const microbit_pin_obj_t *default_audio_pin;
+    const microbit_pin_obj_t *button_pins[2];
+} microbit_hardware_t;
+
+
+extern void microbit_i2c_init(void);
+
+extern const microbit_hardware_t microbit_hardware;
 
 }
 

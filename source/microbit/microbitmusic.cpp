@@ -312,7 +312,7 @@ STATIC mp_obj_t microbit_music_play(mp_uint_t n_args, const mp_obj_t *pos_args, 
 
     // get the pin to play on
     const microbit_pin_obj_t *pin = microbit_obj_get_pin(args[1].u_obj);
-    microbit_obj_pin_acquire(pin, MP_QSTR_music);
+    microbit_obj_pin_acquire(pin, microbit_pin_mode_music);
 
     // start the tune running in the background
     async_music_state = ASYNC_MUSIC_STATE_IDLE;
@@ -356,7 +356,7 @@ STATIC mp_obj_t microbit_music_pitch(mp_uint_t n_args, const mp_obj_t *pos_args,
     mp_uint_t frequency = args[0].u_int;
     mp_int_t duration = args[1].u_int;
     const microbit_pin_obj_t *pin = microbit_obj_get_pin(args[2].u_obj);
-    microbit_obj_pin_acquire(pin, MP_QSTR_music);
+    microbit_obj_pin_acquire(pin, microbit_pin_mode_music);
     bool wait = args[3].u_bool;
     pwm_set_duty_cycle(pin->name, 128);
     if (pwm_set_period_us(1000000/frequency))

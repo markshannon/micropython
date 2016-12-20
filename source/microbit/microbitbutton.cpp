@@ -34,7 +34,6 @@ extern "C" {
 
 typedef struct _microbit_button_obj_t {
     mp_obj_base_t base;
-    const microbit_pin_obj_t *pin;
     uint8_t index;
 } microbit_button_obj_t;
 
@@ -46,7 +45,7 @@ static bool debounced_high[8] = { true, true, true, true, true, true, true, true
 mp_obj_t microbit_button_is_pressed(mp_obj_t self_in) {
     microbit_button_obj_t *self = (microbit_button_obj_t*)self_in;
     /* Button is pressed if pin is low */
-    return mp_obj_new_bool(!debounced_high[self->pin->number]);
+    return mp_obj_new_bool(!debounced_high[microbit_hardware.button_pins[self->index]->number]);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_button_is_pressed_obj, microbit_button_is_pressed);
 
@@ -79,7 +78,7 @@ STATIC const mp_map_elem_t microbit_button_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(microbit_button_locals_dict, microbit_button_locals_dict_table);
 
-STATIC const mp_obj_type_t microbit_button_type = {
+const mp_obj_type_t microbit_button_type = {
     { &mp_type_type },
     .name = MP_QSTR_MicroBitButton,
     .print = NULL,
@@ -99,17 +98,13 @@ STATIC const mp_obj_type_t microbit_button_type = {
 
 const microbit_button_obj_t microbit_button_a_obj = {
     {&microbit_button_type},
-    .pin = &microbit_p5_obj,
-    .index = 0,
+    .index = 0
 };
 
 const microbit_button_obj_t microbit_button_b_obj = {
     {&microbit_button_type},
-    .pin = &microbit_p11_obj,
-    .index = 1,
+    .index = 1
 };
-
-extern uint8_t microbit_pinmodes[];
 
 enum PinTransition
 {
@@ -158,15 +153,15 @@ static PinTransition update(const microbit_pin_obj_t *pin) {
 void microbit_button_tick(void) {
     // Update both buttons and the touch pins.
     // Button is pressed when its pin transfers from HIGH to LOW.
-    if (update(microbit_button_a_obj.pin) == HIGH_LOW)
+    if (update(microbit_hardware.button_pins[microbit_button_a_obj.index]) == HIGH_LOW)
         pressed[microbit_button_a_obj.index] = (pressed[microbit_button_a_obj.index] + 2) | 1;
-    if (update(microbit_button_b_obj.pin) == HIGH_LOW)
+    if (update(microbit_hardware.button_pins[microbit_button_b_obj.index]) == HIGH_LOW)
         pressed[microbit_button_b_obj.index] = (pressed[microbit_button_b_obj.index] + 2) | 1;
-    if (microbit_obj_pin_get_mode(&microbit_p0_obj) == MP_QSTR_touch)
+    if (microbit_pin_get_mode(&microbit_p0_obj) == microbit_pin_mode_touch)
         update(&microbit_p0_obj);
-    if (microbit_obj_pin_get_mode(&microbit_p1_obj) == MP_QSTR_touch)
+    if (microbit_pin_get_mode(&microbit_p1_obj) == microbit_pin_mode_touch)
         update(&microbit_p1_obj);
-    if (microbit_obj_pin_get_mode(&microbit_p2_obj) == MP_QSTR_touch)
+    if (microbit_pin_get_mode(&microbit_p2_obj) == microbit_pin_mode_touch)
         update(&microbit_p2_obj);
 }
 

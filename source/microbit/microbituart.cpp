@@ -68,8 +68,8 @@ STATIC mp_obj_t microbit_uart_init(mp_uint_t n_args, const mp_obj_t *pos_args, m
     }
 
     // default pins are the internal USB-UART pins
-    PinName p_tx = TGT_TX;
-    PinName p_rx = TGT_RX;
+    uint8_t p_tx = TGT_TX;
+    uint8_t p_rx = TGT_RX;
 
     // set tx/rx pins if they are given
     if (args[5].u_obj != mp_const_none) {
@@ -89,7 +89,7 @@ STATIC mp_obj_t microbit_uart_init(mp_uint_t n_args, const mp_obj_t *pos_args, m
 
     // initialise the uart
     serial_t serial;
-    serial_init(&serial, p_tx, p_rx);
+    serial_init(&serial, (PinName)p_tx, (PinName)p_rx);
     serial_baud(&serial, args[0].u_int);
     serial_format(&serial, args[1].u_int, parity, args[3].u_int);
 

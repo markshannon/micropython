@@ -112,6 +112,11 @@ STATIC const mp_map_elem_t microbit_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_pin16), (mp_obj_t)&microbit_p16_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_pin19), (mp_obj_t)&microbit_p19_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_pin20), (mp_obj_t)&microbit_p20_obj },
+#ifdef CALLIOPE
+    { MP_OBJ_NEW_QSTR(MP_QSTR_pin28), (mp_obj_t)&microbit_p28_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_pin29), (mp_obj_t)&microbit_p29_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_pin30), (mp_obj_t)&microbit_p30_obj },
+#endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(microbit_module_globals, microbit_module_globals_table);

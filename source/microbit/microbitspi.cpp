@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include "MicroBitPin.h"
+
 extern "C" {
 
 #include "spi_api.h"

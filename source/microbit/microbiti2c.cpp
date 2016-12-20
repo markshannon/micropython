@@ -51,7 +51,18 @@ typedef struct _microbit_i2c_obj_t {
     MicroBitI2C *i2c;
 } microbit_i2c_obj_t;
 
-STATIC mp_obj_t microbit_i2c_init(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+static void i2c_reinit(const microbit_i2c_obj_t *self, PinName p_sda, PinName p_scl, uint32_t freq) {
+    ((mp_I2C*)self->i2c)->set_pins(p_sda, p_scl);
+
+    self->i2c->frequency(freq); // also does i2c_reset()
+
+}
+
+void microbit_i2c_init(void) {
+    i2c_reinit(&microbit_i2c_obj, microbit_hardware.default_sda_pin, microbit_hardware.default_scl_pin, 100000);
+}
+
+STATIC mp_obj_t microbit_i2c_init_func(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_freq, MP_ARG_INT, {.u_int = 100000} },
         { MP_QSTR_sda, MP_ARG_OBJ, {.u_obj = mp_const_none } },
@@ -73,13 +84,11 @@ STATIC mp_obj_t microbit_i2c_init(mp_uint_t n_args, const mp_obj_t *pos_args, mp
     if (args[2].u_obj != mp_const_none) {
         p_scl = microbit_obj_get_pin_name(args[2].u_obj);
     }
-    ((mp_I2C*)self->i2c)->set_pins(p_sda, p_scl);
-
-    self->i2c->frequency(args[0].u_int); // also does i2c_reset()
+    i2c_reinit(self, p_sda, p_scl, args[0].u_int);
 
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(microbit_i2c_init_obj, 1, microbit_i2c_init);
+MP_DEFINE_CONST_FUN_OBJ_KW(microbit_i2c_init_obj, 1, microbit_i2c_init_func);
 
 STATIC mp_obj_t microbit_i2c_read(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t allowed_args[] = {

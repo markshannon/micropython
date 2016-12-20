@@ -19,7 +19,7 @@ extern "C" {
 void app_main() {
     
     // debugging: print memory layout
-    /*
+
     extern uint32_t __data_start__, __data_end__;
     extern uint32_t __bss_start__, __bss_end__;
     extern uint32_t __HeapLimit, __StackLimit, __StackTop;
@@ -30,7 +30,7 @@ void app_main() {
     printf("__HeapLimit    = %p\r\n", &__HeapLimit);
     printf("__StackLimit   = %p\r\n", &__StackLimit);
     printf("__StackTop     = %p\r\n", &__StackTop);
-    */
+    
 
     currentFiber->flags |= MICROBIT_FIBER_FLAG_DO_NOT_PAGE;
 
@@ -74,6 +74,7 @@ void __register_exitproc() {
 }
 
 void microbit_init(void) {
+    microbit_i2c_init();
     uBit.display.disable();
     microbit_display_init();
     microbit_filesystem_init();

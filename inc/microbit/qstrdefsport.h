@@ -64,6 +64,10 @@ Q(PULL_UP)
 Q(PULL_DOWN)
 Q(NO_PULL)
 
+Q(pin28)
+Q(pin29)
+Q(pin30)
+
 Q(MicroBitImage)
 Q(Image)
 Q(image)
