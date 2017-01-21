@@ -32,6 +32,7 @@ extern "C" {
 #include "py/obj.h"
 #include "py/mphal.h"
 #include "modmicrobit.h"
+#include "microbit/microbitpin.h"
 
 STATIC mp_obj_t microbit_reset_(void) {
     uBit.reset();
