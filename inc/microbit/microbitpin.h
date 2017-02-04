@@ -27,7 +27,6 @@
 #define __MICROPY_INCLUDED_MICROBIT_MICROBITPIN_H__
 
 #include "py/obj.h"
-
 typedef struct _microbit_pin_obj_t {
     mp_obj_base_t base;
     uint8_t number; // The pin number on microbit board

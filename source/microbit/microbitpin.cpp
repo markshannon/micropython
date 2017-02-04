@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#include "MicroBit.h"
 #include "microbitobj.h"
+#include "mbed.h"
 
 extern "C" {
 
@@ -37,27 +37,27 @@ extern "C" {
 #include "py/mphal.h"
 
 const microbit_pin_obj_t microbit_pins[] = {
-    {{&microbit_touch_pin_type}, 0, MICROBIT_PIN_P0, MODE_UNUSED},
-    {{&microbit_touch_pin_type}, 1, MICROBIT_PIN_P1, MODE_UNUSED},
-    {{&microbit_touch_pin_type}, 2, MICROBIT_PIN_P2, MODE_UNUSED},
-    {{&microbit_ad_pin_type},   3,  MICROBIT_PIN_P3, MODE_DISPLAY},
-    {{&microbit_ad_pin_type},   4,  MICROBIT_PIN_P4, MODE_DISPLAY},
-    {{&microbit_dig_pin_type},  5,  MICROBIT_PIN_P5, MODE_BUTTON},
-    {{&microbit_dig_pin_type},  6,  MICROBIT_PIN_P6, MODE_DISPLAY},
-    {{&microbit_dig_pin_type},  7,  MICROBIT_PIN_P7, MODE_DISPLAY},
-    {{&microbit_dig_pin_type},  8,  MICROBIT_PIN_P8, MODE_UNUSED},
-    {{&microbit_dig_pin_type},  9,  MICROBIT_PIN_P9, MODE_DISPLAY},
-    {{&microbit_ad_pin_type},  10, MICROBIT_PIN_P10, MODE_DISPLAY},
-    {{&microbit_dig_pin_type}, 11, MICROBIT_PIN_P11, MODE_BUTTON},
-    {{&microbit_dig_pin_type}, 12, MICROBIT_PIN_P12, MODE_UNUSED},
-    {{&microbit_dig_pin_type}, 13, MICROBIT_PIN_P13, MODE_UNUSED},
-    {{&microbit_dig_pin_type}, 14, MICROBIT_PIN_P14, MODE_UNUSED},
-    {{&microbit_dig_pin_type}, 15, MICROBIT_PIN_P15, MODE_UNUSED},
-    {{&microbit_dig_pin_type}, 16, MICROBIT_PIN_P16, MODE_UNUSED},
+    {{&microbit_touch_pin_type}, 0, 3, MODE_UNUSED},
+    {{&microbit_touch_pin_type}, 1, 2, MODE_UNUSED},
+    {{&microbit_touch_pin_type}, 2, 1, MODE_UNUSED},
+    {{&microbit_ad_pin_type},   3, 4, MODE_DISPLAY},
+    {{&microbit_ad_pin_type},   4, 5, MODE_DISPLAY},
+    {{&microbit_dig_pin_type},  5, 17, MODE_BUTTON},
+    {{&microbit_dig_pin_type},  6, 12, MODE_DISPLAY},
+    {{&microbit_dig_pin_type},  7, 11, MODE_DISPLAY},
+    {{&microbit_dig_pin_type},  8, 18, MODE_UNUSED},
+    {{&microbit_dig_pin_type},  9, 10, MODE_DISPLAY},
+    {{&microbit_ad_pin_type},  10, 6, MODE_DISPLAY},
+    {{&microbit_dig_pin_type}, 11, 26, MODE_BUTTON},
+    {{&microbit_dig_pin_type}, 12, 20, MODE_UNUSED},
+    {{&microbit_dig_pin_type}, 13, 23, MODE_UNUSED},
+    {{&microbit_dig_pin_type}, 14, 22, MODE_UNUSED},
+    {{&microbit_dig_pin_type}, 15, 21, MODE_UNUSED},
+    {{&microbit_dig_pin_type}, 16, 16, MODE_UNUSED},
     {{NULL}, 31, 31, 31},
     {{NULL}, 31, 31, 31},
-    {{&microbit_dig_pin_type}, 19, MICROBIT_PIN_P19, MODE_I2C},
-    {{&microbit_dig_pin_type}, 20, MICROBIT_PIN_P20, MODE_I2C}
+    {{&microbit_dig_pin_type}, 19, 0, MODE_I2C},
+    {{&microbit_dig_pin_type}, 20, 30, MODE_I2C}
 };
 
 static const uint32_t VALID_PIN_MASK = ((1<<17)-1) + (1<<19) + (1<<20);

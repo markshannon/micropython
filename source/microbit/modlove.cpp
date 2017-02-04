@@ -26,7 +26,6 @@
  */
 
 #include <stdio.h>
-#include "MicroBit.h"
 
 extern "C" {
 
@@ -52,12 +51,12 @@ void love(int interval = 25 /* ms */) {
         }
         // pulse heart to max brightness
         for(uint step = 0; step < MP_ARRAY_SIZE(bright); ++step) {
-            microbit_display_show(&microbit_display_obj, hearts[step]);
+            microbit_display_show(hearts[step]);
             mp_hal_delay_ms(interval);
         }
         // pulse heart to min brightness
         for(int step = MP_ARRAY_SIZE(bright) - 1; step >= 0; --step) {
-            microbit_display_show(&microbit_display_obj, hearts[step]);
+            microbit_display_show(hearts[step]);
             mp_hal_delay_ms(interval);
         }
     }

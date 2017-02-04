@@ -31,9 +31,6 @@ void app_main() {
     printf("__StackLimit   = %p\r\n", &__StackLimit);
     printf("__StackTop     = %p\r\n", &__StackTop);
     */
-
-    currentFiber->flags |= MICROBIT_FIBER_FLAG_DO_NOT_PAGE;
-
     
     microbit_button_init();
     microbit_accelerometer_init();
@@ -72,14 +69,13 @@ void __register_exitproc() {
 }
 
 void microbit_init(void) {
-    uBit.display.disable();
+    uBit.systemTicker.detach();
     microbit_display_init();
     microbit_filesystem_init();
     microbit_pin_init();
     pwm_init();
 
     // Start the ticker.
-    uBit.systemTicker.detach();
     ticker_init(microbit_ticker);
     ticker_start();
     pwm_start();

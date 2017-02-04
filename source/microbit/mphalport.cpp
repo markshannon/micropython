@@ -39,11 +39,31 @@ static int interrupt_char;
 static uint8_t uart_rx_buf[UART_RX_BUF_SIZE];
 static volatile uint16_t uart_rx_buf_head, uart_rx_buf_tail;
 
+
+static int uart_rx_any(void) {
+    return NRF_UART0->EVENTS_RXDRDY == 1;
+}
+
+static int uart_rx_chr(void) {
+    while (NRF_UART0->EVENTS_RXDRDY != 1) {
+    }
+    NRF_UART0->EVENTS_RXDRDY = 0;
+    return (uint8_t)NRF_UART0->RXD;
+}
+
+static void uart_tx_chr(int c) {
+    while (NRF_UART0->EVENTS_TXDRDY != 1) {
+    }
+    NRF_UART0->EVENTS_TXDRDY = 0;
+    NRF_UART0->TXD = (uint8_t)c;
+}
+
+
 void uart_rx_irq(void) {
-    if (!uBit.serial.readable()) {
+    if (!uart_rx_any()) {
         return;
     }
-    int c = uBit.serial.getc();
+    int c = uart_rx_chr();
     if (c == interrupt_char) {
         MP_STATE_VM(mp_pending_exception) = MP_STATE_PORT(keyboard_interrupt_obj);
     } else {
@@ -90,16 +110,16 @@ void mp_hal_stdout_tx_str(const char *str) {
 
 void mp_hal_stdout_tx_strn(const char *str, size_t len) {
     for (; len > 0; --len) {
-        uBit.serial.putc(*str++);
+        uart_tx_chr(*str++);
     }
 }
 
 void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
     for (; len > 0; --len) {
         if (*str == '\n') {
-            uBit.serial.putc('\r');
+            uart_tx_chr('\r');
         }
-        uBit.serial.putc(*str++);
+        uart_tx_chr(*str++);
     }
 }
 
@@ -136,11 +156,11 @@ void mp_hal_delay_ms(mp_uint_t ms) {
         // Overflow
         do {
             __WFI();
-        } while (uBit.systemTime() > current);
+        } while (ticks > current);
     }
     do {
         __WFI();
-    } while (uBit.systemTime() < wakeup);
+    } while (ticks < wakeup);
 }
 
 }

@@ -389,13 +389,13 @@ mp_obj_t microbit_compass_calibrate(mp_obj_t self_in) {
                 }
             }
         }
-        microbit_display_show(&microbit_display_obj, img);
+        microbit_display_show(img);
         mp_hal_delay_ms(100);
         ticks += 1;
     }
 
     // Show a smiley to indicate that we're done.
-    microbit_display_show(&microbit_display_obj, HAPPY_IMAGE);
+    microbit_display_show(HAPPY_IMAGE);
     mp_hal_delay_ms(1000);
 
     // Should have enough data by now.

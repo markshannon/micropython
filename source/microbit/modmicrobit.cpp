@@ -24,18 +24,22 @@
  * THE SOFTWARE.
  */
 
-#include "MicroBit.h"
+#include "mbed.h"
+
+extern uint32_t ticks;
 
 extern "C" {
 
+#include "microbit/microbitdisplay.h"
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/mphal.h"
 #include "modmicrobit.h"
 #include "microbit/microbitpin.h"
+#include "device.h"
 
 STATIC mp_obj_t microbit_reset_(void) {
-    uBit.reset();
+    NVIC_SystemReset();
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_0(microbit_reset_obj, microbit_reset_);
@@ -55,22 +59,29 @@ STATIC mp_obj_t microbit_sleep(mp_obj_t ms_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_sleep_obj, microbit_sleep);
 
 STATIC mp_obj_t microbit_running_time(void) {
-    return MP_OBJ_NEW_SMALL_INT(uBit.systemTime());
+    return MP_OBJ_NEW_SMALL_INT(ticks);
 }
 MP_DEFINE_CONST_FUN_OBJ_0(microbit_running_time_obj, microbit_running_time);
 
 STATIC mp_obj_t microbit_panic(mp_uint_t n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        uBit.panic();
-    } else {
-        uBit.panic(mp_obj_get_int(args[0]));
+    microbit_display_show((microbit_image_obj_t *)&microbit_const_image_panic_obj);
+    mp_hal_delay_ms(1000);
+    if (n_args == 1) {
+        int code = mp_obj_get_int(args[0]);
+        microbit_display_show(microbit_image_for_char('0'+code%10));
     }
+    mp_hal_delay_ms(10000);
+    microbit_reset_();
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(microbit_panic_obj, 0, 1, microbit_panic);
 
 STATIC mp_obj_t microbit_temperature(void) {
-    return mp_obj_new_int(uBit.thermometer.getTemperature());
+    NRF_TEMP->TASKS_START = 1;
+    while (NRF_TEMP->EVENTS_DATARDY == 0);
+    NRF_TEMP->EVENTS_DATARDY = 0;
+    float temp = NRF_TEMP->TEMP/4.0;
+    return mp_obj_new_float(temp);
 }
 MP_DEFINE_CONST_FUN_OBJ_0(microbit_temperature_obj, microbit_temperature);
 

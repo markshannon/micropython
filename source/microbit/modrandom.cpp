@@ -25,10 +25,7 @@
  * THE SOFTWARE.
  */
 
-#include "MicroBit.h"
-
-#define rand30() (uBit.random(0x40000000))
-#define randbelow(n) (uBit.random(n))
+#define rand30() (randbelow(0x40000000))
 
 extern "C" {
 
@@ -37,8 +34,69 @@ extern "C" {
 #include <string.h>
 
 #include "py/runtime.h"
+#include "device.h"
 
-STATIC mp_obj_t mod_random_getrandbits(mp_obj_t num_in) {
+static uint32_t random_value;
+
+static int randbelow(uint32_t limit) {
+    uint32_t m, result;
+
+    do {
+        m = limit-1;
+        result = 0;
+        do {
+            // Cycle the LFSR (Linear Feedback Shift Register).
+            // We use an optimal sequence with a period of 2^32-1, as defined by Bruce Schneier
+            // "Pseudo-Random Sequence Generator for 32-Bit CPUs: A fast, machine-independent generator for 32-bit Microprocessors"
+            // https://www.schneier.com/paper-pseudorandom-sequence.html
+            uint32_t rnd = random_value;
+
+            rnd = ((((rnd >> 31)
+                          ^ (rnd >> 6)
+                          ^ (rnd >> 4)
+                          ^ (rnd >> 2)
+                          ^ (rnd >> 1)
+                          ^ rnd)
+                          & 0x0000001)
+                          << 31 )
+                          | (rnd >> 1);
+
+            random_value = rnd;
+
+            result = ((result << 1) | (rnd & 0x00000001));
+        } while(m >>= 1);
+    } while (result >= limit);
+
+
+    return result;
+}
+
+/**
+  * Seed our a random number generator (RNG).
+  * We use the NRF51822 in built cryptographic random number generator to seed a Galois LFSR.
+  * We do this as the hardware RNG is relatively high power and slow.
+  * A Galois LFSR is sufficient for our applications, and much more lightweight.
+  */
+static void seed_random()
+{
+    random_value = 0;
+    // Start the Random number generator.
+    NRF_RNG->TASKS_START = 1;
+
+    for(int i = 0; i < 4; i++)
+    {
+        NRF_RNG->EVENTS_VALRDY = 0;
+        while(NRF_RNG->EVENTS_VALRDY == 0);
+
+        random_value = (random_value << 8) | NRF_RNG->VALUE;
+    }
+
+    // Disable the generator to save power.
+    NRF_RNG->TASKS_STOP = 1;
+}
+
+
+static mp_obj_t mod_random_getrandbits(mp_obj_t num_in) {
     int n = mp_obj_get_int(num_in);
     if (n > 30 || n == 0) {
         nlr_raise(mp_obj_new_exception(&mp_type_ValueError));
@@ -48,14 +106,14 @@ STATIC mp_obj_t mod_random_getrandbits(mp_obj_t num_in) {
     mask >>= (32 - n);
     return mp_obj_new_int_from_uint(rand30() & mask);
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_random_getrandbits_obj, mod_random_getrandbits);
+static MP_DEFINE_CONST_FUN_OBJ_1(mod_random_getrandbits_obj, mod_random_getrandbits);
 
 STATIC mp_obj_t mod_random_seed(size_t n_args, const mp_obj_t *args) {
     if (n_args == 0 || args[0] == mp_const_none) {
-        uBit.seedRandom();
+        seed_random();
     } else {
         mp_uint_t seed = mp_obj_get_int_truncated(args[0]);
-        uBit.seedRandom(seed);
+        random_value = seed;
     }
     return mp_const_none;
 }

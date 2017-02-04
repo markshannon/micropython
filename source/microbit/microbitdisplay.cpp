@@ -40,11 +40,12 @@ extern "C" {
 
 #define min(a,b) (((a)<(b))?(a):(b))
 
-void microbit_display_show(microbit_display_obj_t *display, microbit_image_obj_t *image) {
+void microbit_display_show(microbit_image_obj_t *image) {
     mp_int_t w = min(image->width(), 5);
     mp_int_t h = min(image->height(), 5);
     mp_int_t x = 0;
     mp_int_t brightnesses = 0;
+    microbit_display_obj_t *display = &microbit_display_obj;
     for (; x < w; ++x) {
         mp_int_t y = 0;
         for (; y < h; ++y) {
@@ -121,7 +122,7 @@ mp_obj_t microbit_display_show_func(mp_uint_t n_args, const mp_obj_t *pos_args, 
     return mp_const_none;
 
 single_image_immediate:
-    microbit_display_show(self, (microbit_image_obj_t *)image);
+    microbit_display_show((microbit_image_obj_t *)image);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(microbit_display_show_obj, 1, microbit_display_show_func);
@@ -289,21 +290,20 @@ static int32_t callback(void) {
 }
 
 static void draw_object(mp_obj_t obj) {
-    microbit_display_obj_t *display = (microbit_display_obj_t*)MP_STATE_PORT(async_data)[0];
     if (obj == MP_OBJ_STOP_ITERATION) {
         if (async_clear) {
-            microbit_display_show(&microbit_display_obj, BLANK_IMAGE);
+            microbit_display_show(BLANK_IMAGE);
             async_clear = false;
         } else {
             async_stop();
         }
     } else if (mp_obj_get_type(obj) == &microbit_image_type) {
-        microbit_display_show(display, (microbit_image_obj_t *)obj);
+        microbit_display_show((microbit_image_obj_t *)obj);
     } else if (MP_OBJ_IS_STR(obj)) {
         mp_uint_t len;
         const char *str = mp_obj_str_get_data(obj, &len);
         if (len == 1) {
-            microbit_display_show(display, microbit_image_for_char(str[0]));
+            microbit_display_show(microbit_image_for_char(str[0]));
         } else {
             async_stop();
         }
@@ -352,7 +352,7 @@ static void microbit_display_update(void) {
             break;
         }
         case ASYNC_MODE_CLEAR:
-            microbit_display_show(&microbit_display_obj, BLANK_IMAGE);
+            microbit_display_show(BLANK_IMAGE);
             async_stop();
             break;
     }

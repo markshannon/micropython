@@ -98,6 +98,7 @@ extern const struct _monochrome_5by5_t microbit_const_image_giraffe_obj;
 extern const struct _monochrome_5by5_t microbit_const_image_skull_obj;
 extern const struct _monochrome_5by5_t microbit_const_image_umbrella_obj;
 extern const struct _monochrome_5by5_t microbit_const_image_snake_obj;
+extern const struct _monochrome_5by5_t microbit_const_image_panic_obj;
 
 extern const struct _mp_obj_tuple_t microbit_music_tune_dadadadum_obj;
 extern const struct _mp_obj_tuple_t microbit_music_tune_entertainer_obj;
@@ -210,5 +211,7 @@ extern const mp_obj_module_t music_module;
 extern const mp_obj_module_t love_module;
 extern const mp_obj_module_t antigravity_module;
 extern const mp_obj_module_t this_module;
+
+#define MICROBIT_PIN_MAX_OUTPUT 1023
 
 #endif // __MICROPY_INCLUDED_MICROBIT_MODMICROBIT_H__
