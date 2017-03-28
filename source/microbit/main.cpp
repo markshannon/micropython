@@ -11,7 +11,9 @@ extern "C" {
     void mp_run(void);
     
     void microbit_button_init(void);
+    void microbit_compass_init(void);
     void microbit_accelerometer_init(void);
+    void microbit_accelerometer_tick(void);
     void microbit_button_tick(void);
     void pwm_init(void);
 }
@@ -37,6 +39,7 @@ void app_main() {
     
     microbit_button_init();
     microbit_accelerometer_init();
+    microbit_compass_init();
 
     while (1) {
         mp_run();
@@ -45,10 +48,9 @@ void app_main() {
 
 extern "C" {
 
-extern void compass_tick(void);
+extern void microbit_compass_tick(void);
 
 void microbit_ticker(void) {
-    accelerometer_up_to_date = false;
 
     // Update buttons and pins with touch.
     microbit_button_tick();
@@ -59,9 +61,11 @@ void microbit_ticker(void) {
     // Update the music
     microbit_music_tick();
 
+    // Update the accelerometer
+    microbit_accelerometer_tick();
+
     //Update the compass
-    compass_tick();
-    compass_up_to_date = false;
+    microbit_compass_tick();
 
 }
 
