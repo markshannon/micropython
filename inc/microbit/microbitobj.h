@@ -42,6 +42,11 @@ extern volatile bool accelerometer_up_to_date;
 extern volatile bool accelerometer_updating;
 
 extern void microbit_pin_init(void);
+extern void microbit_accelerometer_init(void);
+void microbit_i2c_init(void);
+
+int microbit_i2c_read(const struct _microbit_i2c_obj_t *i2c, uint32_t address, char* data, int len, bool stop);
+int microbit_i2c_write(const struct _microbit_i2c_obj_t *i2c, uint32_t address, const char* data, int len, bool stop);
 
 }
 

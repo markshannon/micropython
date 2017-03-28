@@ -11,7 +11,6 @@ extern "C" {
     void mp_run(void);
     
     void microbit_button_init(void);
-    void microbit_accelerometer_init(void);
     void microbit_button_tick(void);
     void pwm_init(void);
 }
@@ -36,7 +35,6 @@ void app_main() {
 
     
     microbit_button_init();
-    microbit_accelerometer_init();
 
     while (1) {
         mp_run();
@@ -55,7 +53,6 @@ void microbit_ticker(void) {
     }
 
     compass_up_to_date = false;
-    accelerometer_up_to_date = false;
 
     // Update buttons and pins with touch.
     microbit_button_tick();
@@ -75,6 +72,9 @@ void __register_exitproc() {
 
 void microbit_init(void) {
     uBit.display.disable();
+
+    microbit_i2c_init();
+    microbit_accelerometer_init();
     microbit_display_init();
     microbit_filesystem_init();
     microbit_pin_init();

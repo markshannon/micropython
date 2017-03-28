@@ -143,4 +143,11 @@ void mp_hal_delay_ms(mp_uint_t ms) {
     } while (uBit.systemTime() < wakeup);
 }
 
+void error(const char* format, ...) {
+    nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, format));
+}
+
+
+
+
 }

@@ -468,3 +468,6 @@ Q(group)
 Q(RATE_250KBIT)
 Q(RATE_1MBIT)
 Q(RATE_2MBIT)
+
+Q(is_running)
+Q(read_register)
