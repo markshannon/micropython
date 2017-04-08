@@ -24,7 +24,12 @@
  * THE SOFTWARE.
  */
 
-#include "MicroBit.h"
+#include "mbed.h"
+#include "PinNames.h"
+
+static Serial microbit_serial(USBTX, USBRX);
+
+extern uint32_t microbit_ticks;
 
 extern "C" {
 
@@ -39,11 +44,17 @@ static int interrupt_char;
 static uint8_t uart_rx_buf[UART_RX_BUF_SIZE];
 static volatile uint16_t uart_rx_buf_head, uart_rx_buf_tail;
 
+#define MICROBIT_SERIAL_DEFAULT_BAUD_RATE 115200
+
+void microbit_serial_init(void) {
+    microbit_serial.baud(MICROBIT_SERIAL_DEFAULT_BAUD_RATE);
+}
+
 void uart_rx_irq(void) {
-    if (!uBit.serial.readable()) {
+    if (!microbit_serial.readable()) {
         return;
     }
-    int c = uBit.serial.getc();
+    int c = microbit_serial.getc();
     if (c == interrupt_char) {
         MP_STATE_VM(mp_pending_exception) = MP_STATE_PORT(keyboard_interrupt_obj);
     } else {
@@ -59,7 +70,7 @@ void uart_rx_irq(void) {
 void mp_hal_init(void) {
     uart_rx_buf_head = 0;
     uart_rx_buf_tail = 0;
-    uBit.serial.attach(uart_rx_irq);
+    microbit_serial.attach(uart_rx_irq);
     interrupt_char = -1;
     MP_STATE_PORT(keyboard_interrupt_obj) = mp_obj_new_exception(&mp_type_KeyboardInterrupt);
 }
@@ -90,16 +101,16 @@ void mp_hal_stdout_tx_str(const char *str) {
 
 void mp_hal_stdout_tx_strn(const char *str, size_t len) {
     for (; len > 0; --len) {
-        uBit.serial.putc(*str++);
+        microbit_serial.putc(*str++);
     }
 }
 
 void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
     for (; len > 0; --len) {
         if (*str == '\n') {
-            uBit.serial.putc('\r');
+            microbit_serial.putc('\r');
         }
-        uBit.serial.putc(*str++);
+        microbit_serial.putc(*str++);
     }
 }
 
@@ -130,17 +141,17 @@ void mp_hal_display_string(const char *str) {
 void mp_hal_delay_ms(mp_uint_t ms) {
     if (ms <= 0)
         return;
-    unsigned long current = uBit.systemTime();
+    unsigned long current = microbit_ticks;
     unsigned long wakeup = current + ms;
     if (wakeup < current) {
         // Overflow
         do {
             __WFI();
-        } while (uBit.systemTime() > current);
+        } while (microbit_ticks > current);
     }
     do {
         __WFI();
-    } while (uBit.systemTime() < wakeup);
+    } while (microbit_ticks < wakeup);
 }
 
 }

@@ -1,11 +1,11 @@
 #ifndef __MICROPY_INCLUDED_LIB_TICKER_H__
 #define __MICROPY_INCLUDED_LIB_TICKER_H__
 
+#include <stdint.h>
+
 /*************************************
  * 62.5kHz (16µs cycle time) ticker.
  ************************************/
-
-#include "nrf.h"
 
 typedef void (*callback_ptr)(void);
 typedef int32_t (*ticker_callback_ptr)(void);

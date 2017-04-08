@@ -26,7 +26,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "py/nlr.h"
+#include "nrf51_bitfields.h"
 #include "py/obj.h"
 #include "py/gc.h"
 #include "filesystem.h"

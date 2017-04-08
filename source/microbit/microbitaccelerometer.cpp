@@ -230,7 +230,6 @@ void microbit_accelerometer_init(void) {
 
 }
 
-extern uint32_t ticks;
 static uint8_t wait = 6;
 
 void microbit_accelerometer_tick(void) {

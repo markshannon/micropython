@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2015 Damien P. George
+ * Copyright (c) 2015 Damien P. George, 2017 Mark Shannon
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#include "MicroBit.h"
 #include "microbitobj.h"
+#include "AnalogIn.h"
 
 extern "C" {
 
@@ -36,6 +36,27 @@ extern "C" {
 #include "nrf_gpio.h"
 #include "py/mphal.h"
 
+
+//#defines for each edge connector pin
+#define MICROBIT_PIN_P0     3        //P0 is the left most pad (ANALOG/DIGITAL) used to be P0_3 on green board
+#define MICROBIT_PIN_P1     2        //P1 is the middle pad (ANALOG/DIGITAL)
+#define MICROBIT_PIN_P2     1        //P2 is the right most pad (ANALOG/DIGITAL) used to be P0_1 on green board
+#define MICROBIT_PIN_P3     4        //COL1 (ANALOG/DIGITAL)
+#define MICROBIT_PIN_P4     5        //COL2 (ANALOG/DIGITAL)
+#define MICROBIT_PIN_P5     17       //BTN_A
+#define MICROBIT_PIN_P6     12       //COL9
+#define MICROBIT_PIN_P7     11       //COL8
+#define MICROBIT_PIN_P8     18       //PIN 18
+#define MICROBIT_PIN_P9     10       //COL7
+#define MICROBIT_PIN_P10    6        //COL3 (ANALOG/DIGITAL)
+#define MICROBIT_PIN_P11    26       //BTN_B
+#define MICROBIT_PIN_P12    20       //PIN 20
+#define MICROBIT_PIN_P13    23       //SCK
+#define MICROBIT_PIN_P14    22       //MISO
+#define MICROBIT_PIN_P15    21       //MOSI
+#define MICROBIT_PIN_P16    16       //PIN 16
+#define MICROBIT_PIN_P19    0        //SCL
+#define MICROBIT_PIN_P20    30       //SDA
 
 const microbit_pin_obj_t microbit_p0_obj = {{&microbit_touch_pin_type}, 0, MICROBIT_PIN_P0, MODE_UNUSED};
 const microbit_pin_obj_t microbit_p1_obj = {{&microbit_touch_pin_type}, 1, MICROBIT_PIN_P1, MODE_UNUSED};
@@ -134,7 +155,7 @@ mp_obj_t microbit_pin_write_analog(mp_obj_t self_in, mp_obj_t value_in) {
     } else {
         set_value = mp_obj_get_int(value_in);
     }
-    if (set_value < 0 || set_value > MICROBIT_PIN_MAX_OUTPUT) {
+    if (set_value < 0 || set_value > 1023) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "value must be between 0 and 1023"));
     }
     if (microbit_pin_get_mode(self) != microbit_pin_mode_write_analog) {

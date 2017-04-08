@@ -24,8 +24,14 @@
  * THE SOFTWARE.
  */
 
+
+extern "C" {
+
 #include "stddef.h"
 #include "lib/ticker.h"
+
+#include "nrf.h"
+
 
 #define FastTicker NRF_TIMER0
 #define FastTicker_IRQn TIMER0_IRQn
@@ -79,7 +85,7 @@ int32_t noop(void) {
     return -1;
 }
 
-extern uint32_t ticks;
+extern uint32_t microbit_ticks;
 
 static ticker_callback_ptr callbacks[3] = { noop, noop, noop };
 
@@ -101,7 +107,7 @@ void FastTicker_IRQHandler(void) {
     if (ticker->EVENTS_COMPARE[3]) {
         ticker->EVENTS_COMPARE[3] = 0;
         ticker->CC[3] += MICROSECONDS_PER_MACRO_TICK;
-        ticks += MILLISECONDS_PER_MACRO_TICK;
+        microbit_ticks += MILLISECONDS_PER_MACRO_TICK;
         NVIC_SetPendingIRQ(SlowTicker_IRQn);
     }
 }
@@ -165,4 +171,6 @@ int set_low_priority_callback(callback_ptr callback, int id) {
     low_priority_callbacks[id] = callback;
     NVIC_SetPendingIRQ(LowPriority_IRQn);
     return 0;
+}
+
 }

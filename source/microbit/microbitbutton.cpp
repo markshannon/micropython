@@ -31,6 +31,7 @@ extern "C" {
 #include "microbitpin.h"
 #include "modmicrobit.h"
 #include "nrf_gpio.h"
+#include "nrf_gpiote.h"
 
 typedef struct _microbit_button_obj_t {
     mp_obj_base_t base;
@@ -72,7 +73,17 @@ mp_obj_t microbit_button_was_pressed(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(microbit_button_was_pressed_obj, microbit_button_was_pressed);
 
+#define MICROBIT_PIN_BUTTON_RESET 19
+
+void GPIOTE_IRQHandler(void) {
+   NVIC_SystemReset();
+}
+
 void microbit_button_init(void) {
+    nrf_gpio_cfg_input(MICROBIT_PIN_BUTTON_RESET, NRF_GPIO_PIN_PULLUP);
+    /* Use GPIOTE channel 2. (0-1 is audio). */
+    nrf_gpiote_event_configure(2, MICROBIT_PIN_BUTTON_RESET, NRF_GPIOTE_POLARITY_HITOLO);
+    nrf_gpiote_int_enable(1<<2);
 }
 
 STATIC const mp_map_elem_t microbit_button_locals_dict_table[] = {
