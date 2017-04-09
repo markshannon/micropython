@@ -16,6 +16,7 @@ extern "C" {
     void microbit_button_tick(void);
     void pwm_init(void);
     void microbit_i2c_init(void);
+    void MicroBit_seedRandom(void);
 }
 
 void app_main() {
