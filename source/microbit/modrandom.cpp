@@ -25,10 +25,8 @@
  * THE SOFTWARE.
  */
 
-#include "MicroBit.h"
-
-#define rand30() (uBit.random(0x40000000))
-#define randbelow(n) (uBit.random(n))
+#define rand30() (microbit_pseudo_random(0x40000000))
+#define randbelow(n) (microbit_pseudo_random(n))
 
 extern "C" {
 
@@ -37,6 +35,72 @@ extern "C" {
 #include <string.h>
 
 #include "py/runtime.h"
+#include "device.h"
+#include "nrf51_bitfields.h"
+
+static uint32_t random_value;
+
+void microbit_seed_random(void) {
+    random_value = 0;
+
+    //Configure RNG to be unbiased
+    NRF_RNG->CONFIG = RNG_CONFIG_DERCEN_Enabled;
+
+    /* Just power up hardware RNG for minimum time necessary */
+    NRF_RNG->TASKS_START = 1;
+    do {
+        for(int i = 0; i < 4; i++)
+        {
+            // Wait for ready event
+            NRF_RNG->EVENTS_VALRDY = 0;
+            while(NRF_RNG->EVENTS_VALRDY == 0);
+
+            random_value |= NRF_RNG->VALUE << (i<<3);
+        }
+    // The PRNG doesn't work if the seed is zero
+    } while (random_value == 0);
+    NRF_RNG->TASKS_STOP = 1;
+}
+
+/* Reuse the PRNG from the DAL.  */
+static int microbit_pseudo_random(int max)
+{
+    uint32_t m, result;
+
+    // Our maximum return value is actually one less than passed
+    max--;
+
+    do {
+        m = (uint32_t)max;
+        result = 0;
+        do {
+            // Cycle the LFSR (Linear Feedback Shift Register).
+            // We use an optimal sequence with a period of 2^32-1, as defined by Bruce Schneier here (a true legend in the field!),
+            // For those interested, it's documented in his paper:
+            // "Pseudo-Random Sequence Generator for 32-Bit CPUs: A fast, machine-independent generator for 32-bit Microprocessors"
+            // https://www.schneier.com/paper-pseudorandom-sequence.html
+            uint32_t rnd = random_value;
+
+            rnd = ((((rnd >> 31)
+                          ^ (rnd >> 6)
+                          ^ (rnd >> 4)
+                          ^ (rnd >> 2)
+                          ^ (rnd >> 1)
+                          ^ rnd)
+                          & 0x0000001)
+                          << 31 )
+                          | (rnd >> 1);
+
+            random_value = rnd;
+
+            result = ((result << 1) | (rnd & 0x00000001));
+        } while(m >>= 1);
+    } while (result > (uint32_t)max);
+
+
+    return result;
+}
+
 
 STATIC mp_obj_t mod_random_getrandbits(mp_obj_t num_in) {
     int n = mp_obj_get_int(num_in);
@@ -52,10 +116,10 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_random_getrandbits_obj, mod_random_getrandb
 
 STATIC mp_obj_t mod_random_seed(size_t n_args, const mp_obj_t *args) {
     if (n_args == 0 || args[0] == mp_const_none) {
-        uBit.seedRandom();
+        microbit_seed_random();
     } else {
         mp_uint_t seed = mp_obj_get_int_truncated(args[0]);
-        uBit.seedRandom(seed);
+        random_value = seed;
     }
     return mp_const_none;
 }
