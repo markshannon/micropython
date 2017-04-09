@@ -14,6 +14,7 @@ extern "C" {
     void microbit_accelerometer_init(void);
     void microbit_button_tick(void);
     void pwm_init(void);
+    void microbit_serial_init(void);
 }
 
 void app_main() {
@@ -34,6 +35,7 @@ void app_main() {
 
     currentFiber->flags |= MICROBIT_FIBER_FLAG_DO_NOT_PAGE;
 
+    microbit_serial_init();
     
     microbit_button_init();
     microbit_accelerometer_init();
