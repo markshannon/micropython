@@ -91,6 +91,8 @@ typedef struct _appended_script_t {
 
 #define APPENDED_SCRIPT ((const appended_script_t*)microbit_mp_appended_script())
 
+#define HEAP_SIZE (12*1024)
+
 void mp_run(void) {
     int stack_dummy;
     stack_top = (char*)&stack_dummy;
@@ -98,10 +100,9 @@ void mp_run(void) {
     mp_stack_ctrl_init();
     mp_stack_set_limit(1800); // stack is 2k
 
-    // allocate the uPy heap statically in the available RAM between heap and stack
-    extern uint32_t __HeapLimit;
     extern uint32_t __StackLimit;
-    gc_init(&__HeapLimit, &__StackLimit);
+    uint8_t* heap_end = ((uint8_t *)&__StackLimit)-4;
+    gc_init(heap_end-HEAP_SIZE, heap_end);
 
     mp_init();
     mp_hal_init();
