@@ -24,19 +24,18 @@
  * THE SOFTWARE.
  */
 
-extern "C" {
-
 #include "py/runtime.h"
-#include "microbitobj.h"
+//#include "microbitobj.h"
 #include "microbitpin.h"
 #include "modmicrobit.h"
 #include "nrf_gpio.h"
 #include "nrf_gpiote.h"
+#include "microbitcomponent.h"
 
 typedef struct _microbit_button_obj_t {
-    mp_obj_base_t base;
-    const microbit_pin_obj_t *pin;
+    microbit_component_obj_t base;
     uint8_t index;
+    const microbit_pin_obj_t *pin;
 } microbit_button_obj_t;
 
 /* Stores pressed count in top 31 bits and was_pressed in the low bit */
@@ -119,25 +118,13 @@ STATIC const mp_obj_type_t microbit_button_type = {
     .locals_dict = (mp_obj_dict_t*)&microbit_button_locals_dict,
 };
 
-const microbit_button_obj_t microbit_button_a_obj = {
-    {&microbit_button_type},
-    .pin = &microbit_p5_obj,
-    .index = 0,
-};
-
-const microbit_button_obj_t microbit_button_b_obj = {
-    {&microbit_button_type},
-    .pin = &microbit_p11_obj,
-    .index = 1,
-};
-
-enum PinTransition
+typedef enum _PinTransition
 {
     LOW_LOW = 0,
     LOW_HIGH = 1,
     HIGH_LOW = 2,
     HIGH_HIGH = 3
-};
+} PinTransition;
 
 static PinTransition update(const microbit_pin_obj_t *pin) {
     int32_t sigma = sigmas[pin->number&7];
@@ -175,6 +162,24 @@ static PinTransition update(const microbit_pin_obj_t *pin) {
     return result;
 }
 
+const microbit_button_obj_t microbit_button_a_obj = {
+    .base = {
+        .base = {&microbit_button_type},
+        .id = MICROBIT_BUTTON_A_ID,
+    },
+    .pin = &microbit_p5_obj,
+    .index = 0,
+};
+
+const microbit_button_obj_t microbit_button_b_obj = {
+    .base = {
+        .base = {&microbit_button_type},
+        .id = MICROBIT_BUTTON_B_ID,
+    },
+    .pin = &microbit_p11_obj,
+    .index = 1,
+};
+
 void microbit_button_tick(void) {
     // Update both buttons and the touch pins.
     // Button is pressed when its pin transfers from HIGH to LOW.
@@ -192,11 +197,4 @@ void microbit_button_tick(void) {
 
 bool microbit_pin_high_debounced(microbit_pin_obj_t *pin) {
     return debounced_high[pin->number&7];
-}
-
-
-
-
-
-
 }

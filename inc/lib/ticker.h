@@ -23,6 +23,9 @@ uint32_t microbit_running_time(void);
 
 void microbit_delay_ms(uint32_t ms);
 
+/** Start calling `callback` at `interval_ms`. If `callback` is NULL then stop */
+void microbit_ticker_interval(int32_t interval_ms, callback_ptr callback);
+
 #define CYCLES_PER_MICROSECONDS 16
 
 #define MICROSECONDS_PER_TICK 16

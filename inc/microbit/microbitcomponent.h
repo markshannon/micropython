@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2015 Damien P. George
+ * Copyright (c) 2017 Mark Shannon
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,36 +23,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef __MICROPY_INCLUDED_MICROBIT_MICROBITOBJ_H__
-#define __MICROPY_INCLUDED_MICROBIT_MICROBITOBJ_H__
-
-extern "C" {
+#ifndef __MICROPY_INCLUDED_MICROBIT_MICROBITCOMPONENT_H__
+#define __MICROPY_INCLUDED_MICROBIT_MICROBITCOMPONENT_H__
 
 #include "py/obj.h"
-#include "microbitpin.h"
-#include "PinNames.h"
-#include "microbitmath.h"
+
+typedef struct _microbit_component_obj_t {
+    mp_obj_base_t base;
+    uint8_t id;
+} microbit_component_obj_t;
+
+// Component IDs used for events
+#define MICROBIT_BUTTON_A_ID 0
+#define MICROBIT_BUTTON_B_ID 1
 
 
-const microbit_pin_obj_t *microbit_obj_get_pin(mp_obj_t o);
-PinName microbit_obj_get_pin_name(mp_obj_t o);
-
-extern volatile bool compass_up_to_date;
-extern volatile bool compass_updating;
-
-extern volatile bool accelerometer_up_to_date;
-extern volatile bool accelerometer_updating;
-
-extern void microbit_pin_init(void);
-
-extern bool microbit_button_is_pressed(const struct _microbit_button_obj_t *button);
-
-extern int microbit_i2c_read(const struct _microbit_i2c_obj_t *i2c, int address, char *data, int length, bool repeat);
-
-extern void microbit_accelerometer_get_values(const struct _microbit_accelerometer_obj_t *self, vector *values);
-
-extern int microbit_i2c_write(const struct _microbit_i2c_obj_t *i2c, int address, const char *data, int length, bool repeat);
-
-}
-
-#endif // __MICROPY_INCLUDED_MICROBIT_MICROBITOBJ_H__
+#endif // __MICROPY_INCLUDED_MICROBIT_MICROBITCOMPONENT_H__

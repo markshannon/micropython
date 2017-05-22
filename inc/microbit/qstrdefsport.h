@@ -476,3 +476,9 @@ Q(RATE_2MBIT)
 
 Q(is_running)
 Q(read_register)
+
+Q(events)
+Q(event_stream)
+Q(tick)
+Q(drop_newest)
+Q(queue)

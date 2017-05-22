@@ -99,6 +99,7 @@ extern const struct _mp_obj_module_t os_module;
 extern const struct _mp_obj_module_t radio_module;
 extern const struct _mp_obj_module_t audio_module;
 extern const struct _mp_obj_module_t speech_module;
+extern const struct _mp_obj_module_t events_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_microbit), (mp_obj_t)&microbit_module }, \
@@ -112,6 +113,7 @@ extern const struct _mp_obj_module_t speech_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_radio), (mp_obj_t)&radio_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_audio), (mp_obj_t)&audio_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_speech), (mp_obj_t)&speech_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_events), (mp_obj_t)&events_module }, \
     \
     /* the following provide aliases for existing modules */ \
     { MP_OBJ_NEW_QSTR(MP_QSTR_collections), (mp_obj_t)&mp_module_collections }, \
@@ -131,6 +133,7 @@ extern const struct _mp_obj_module_t speech_module;
     const struct _pwm_events *pwm_active_events; \
     const struct _pwm_events *pwm_pending_events; \
     struct _compass_calibration_t *compass_calibration_data; \
+    struct _events_buffer_t *events_buffer; \
 
 // We need to provide a declaration/definition of alloca()
 #include <alloca.h>

@@ -181,8 +181,9 @@ static void lf_clock_init(void) {
     NRF_RTC0->EVENTS_OVRFLW = 0;
     NRF_RTC0->PRESCALER = 0;
     NRF_RTC0->CC[0] = -1;
+    NRF_RTC0->CC[1] = -1;
     NRF_RTC0->EVENTS_COMPARE[0] = 0;
-    NRF_RTC0->INTENSET = RTC_INTENSET_COMPARE0_Msk | RTC_INTENSET_OVRFLW_Msk;
+    NRF_RTC0->INTENSET = RTC_INTENSET_COMPARE0_Msk | RTC_INTENSET_COMPARE1_Msk | RTC_INTENSET_OVRFLW_Msk;
     NRF_RTC0->TASKS_START = 1;
     NVIC_SetPriority(RTC0_IRQn, 2);
     NVIC_EnableIRQ(RTC0_IRQn);
@@ -200,6 +201,10 @@ uint32_t microbit_running_time(void) {
     return over+((125*counter)>>12);
 }
 
+static uint32_t interval_ticks = 0xffffff;
+
+static callback_ptr interval_ticker = (callback_ptr)noop;
+
 void RTC0_IRQHandler(void) {
     if (NRF_RTC0->EVENTS_OVRFLW) {
         NRF_RTC0->EVENTS_OVRFLW = 0;
@@ -209,6 +214,11 @@ void RTC0_IRQHandler(void) {
     if (NRF_RTC0->EVENTS_COMPARE[0]) {
         NRF_RTC0->EVENTS_COMPARE[0] = 0;
         wakeup = 1;
+    }
+    if (NRF_RTC0->EVENTS_COMPARE[1]) {
+        NRF_RTC0->EVENTS_COMPARE[1] = 0;
+        interval_ticker();
+        NRF_RTC0->CC[1] += interval_ticks;
     }
 }
 
@@ -225,6 +235,10 @@ static uint32_t delay_ticks(uint32_t ticks) {
     return (NRF_RTC0->COUNTER - start)&0xffffff;
 }
 
+static int32_t ticks_from_ms(uint32_t ms) {
+    return (ms<<5)+((((int32_t)ms)*3146)>>12)-(ms>>14);
+}
+
 void microbit_delay_ms(uint32_t ms) {
     if (ms == 0)
         return;
@@ -236,6 +250,17 @@ void microbit_delay_ms(uint32_t ms) {
         ticks -= delay_ticks(ticks);
     }
     // ticks = 32.768*ms
-    ticks += (ms<<5)+((((int32_t)ms)*3146)>>12)-(ms>>14);
+    ticks += ticks_from_ms(ms);
     delay_ticks(ticks);
+}
+
+/** Start calling `callback` at `interval_ms`. If `callback` is NULL then stop */
+void microbit_ticker_interval(int32_t interval_ms, callback_ptr callback) {
+    if (callback == NULL) {
+        NRF_RTC0->CC[1] = NRF_RTC0->COUNTER - 1;
+        interval_ticker = (callback_ptr)noop;
+    } else {
+        NRF_RTC0->CC[1] = NRF_RTC0->COUNTER + ticks_from_ms(ms);
+        interval_ticker = callback;
+    }
 }
